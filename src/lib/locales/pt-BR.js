@@ -914,7 +914,7 @@ export default {
         ? "1 endereço apontando para fora desta máquina foi bloqueado."
         : `${n} endereços apontando para fora desta máquina foram bloqueados.`,
   ],
-  accentColor: ["Accent colour", "Cor de destaque"],
+  notebookColor: ["Notebook colour", "Cor do caderno"],
   headingColor: ["Headings", "Títulos"],
   headingColorAccent: ["Accent", "Destaque"],
   headingColorAccentHint: [
@@ -1617,7 +1617,6 @@ export default {
         5: "Orange",
         6: "Yellow",
         7: "Green",
-        neutral: "Neutral",
       })[slot] ?? slot,
     (slot) =>
       ({
@@ -1628,7 +1627,6 @@ export default {
         5: "Laranja",
         6: "Amarelo",
         7: "Verde",
-        neutral: "Neutro",
       })[slot] ?? slot,
   ],
   bannerImage: ["Choose image…", "Escolher imagem…"],

@@ -5,7 +5,7 @@
   export const index = () => [
     S.mode,
     S.theme,
-    S.accentColor,
+    S.notebookColor,
     S.headingColor,
     S.interfaceZoom,
     S.noteFontSizeLabel,
@@ -320,11 +320,11 @@
   <!-- Not a <label>: the picker is a group of buttons, and a label wrapping
        them would claim the first one for its own click. -->
   <div class="settings__row">
-    <span class="settings__label">{S.accentColor}</span>
+    <span class="settings__label">{S.notebookColor}</span>
     <AccentPicker
       value={form.accentColor || DEFAULT_ACCENT}
       clearable={false}
-      label={S.accentColor}
+      label={S.notebookColor}
       folds={compact}
       onPick={(c) => putDisplay({ accentColor: c })}
     />

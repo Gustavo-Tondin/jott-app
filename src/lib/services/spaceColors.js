@@ -1,33 +1,29 @@
 // The colour a space READS as — not always the one in its `.space.json`:
 // colour belongs to the group, and a member's own stops counting until it
 // leaves. Under the RAINBOW — what a notebook does until it is left
-// (`rainbowSpaces`) — the sidebar wears the seven hues from the accent, one
-// per top-level entry in sidebar order, `neutral` closing every lap,
-// ignoring what a space chose. Leaving it writes the deal down, so what the
-// column was showing is what it keeps (`Notebook::set_rainbow_spaces`).
+// (`rainbowSpaces`) — the sidebar wears the seven slots, one per top-level
+// entry in sidebar order, ignoring what a space chose. Leaving it writes the
+// deal down, so what the column was showing is what it keeps
+// (`Notebook::set_rainbow_spaces`).
 
-import { DEFAULT_ACCENT, HUES, slotOf } from "./accent.js";
+import { ACCENTS, slotOf } from "./accent.js";
 import { sidebarEntries } from "./sidebarOrder.js";
 
-/// The cycle: the seven from `accent` going around (the order `accent.js`
-/// draws them — the one source), then `neutral`, ALWAYS last. An accent that
-/// is not one of the seven starts from the app's own.
-export function rainbowFrom(accent) {
-  const start = Math.max(0, HUES.indexOf(HUES.includes(accent) ? accent : DEFAULT_ACCENT));
-  return [...HUES.map((_, i) => HUES[(start + i) % HUES.length]), "neutral"];
-}
+/// The cycle: the seven in the order `accent.js` draws them — the one source.
+/// The column starts at the SECOND (see `resolve`), so the first lap ends on
+/// the first slot.
+export const RAINBOW = ACCENTS;
 
 /// What each entry reads as, by space path and by group folder.
-function resolve(spaces = [], groups = [], { rainbow = false, accent = null } = {}) {
+function resolve(spaces = [], groups = [], { rainbow = false } = {}) {
   const groupColor = new Map();
   const spaceColor = new Map();
 
   if (rainbow) {
-    const hues = rainbowFrom(accent);
-    // Index 0 is the accent, worn by the fixed spaces; the column below
-    // them starts at 1, in the order the sidebar draws it — so two screens
-    // never disagree about which space is the orange one.
-    for (const sp of spaces) if (sp.fixed) spaceColor.set(sp.path, hues[0]);
+    const hues = RAINBOW;
+    // The fixed spaces are the app's own and wear the brand (no colour). The
+    // column below them starts at index 1, in the order the sidebar draws it
+    // — so two screens never disagree about which space is the orange one.
     let dealt = 1;
     for (const entry of sidebarEntries(spaces.filter((sp) => !sp.fixed), groups)) {
       const hue = hues[dealt++ % hues.length];
@@ -80,10 +76,10 @@ export function groupColors(spaces = [], groups = [], options = {}) {
 /// The colour a NEW top-level entry is born wearing once the column has LEFT
 /// the rainbow: the one after the last entry's, so what is made next goes on
 /// around the wheel even though nothing is being dealt any more. An entry
-/// wearing nothing — or a colour of its own that is not one of the eight —
+/// wearing nothing — or a colour of its own that is not one of the seven —
 /// leaves the position to answer, which is what the deal would have said.
-export function nextRainbowColor(spaces = [], groups = [], accent = null) {
-  const hues = rainbowFrom(accent);
+export function nextRainbowColor(spaces = [], groups = []) {
+  const hues = RAINBOW;
   // The top level is all the rainbow deals to; the fixed three are not in it.
   const entries = sidebarEntries(spaces.filter((sp) => !sp.fixed), groups);
   const last = entries[entries.length - 1];
@@ -95,8 +91,8 @@ export function nextRainbowColor(spaces = [], groups = [], accent = null) {
 /// The deal as it goes to disk when the column leaves the rainbow: every
 /// entry that OWNS a colour, mapped to the one it is showing. A space inside
 /// a group is left out (the colour is the group's, and writing it would leave
-/// a stale one behind when it moves out), and so are the fixed three — their
-/// dealt colour is the accent, which is what wearing none already means.
+/// a stale one behind when it moves out), and so are the fixed three, which
+/// wear the brand.
 export function dealtColors(spaces = [], groups = [], options = {}) {
   const { spaceColor, groupColor } = resolve(spaces, groups, options);
   const grouped = new Set(groups.flatMap((group) => group.spaces ?? []));

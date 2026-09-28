@@ -2,10 +2,9 @@
    roles.css — the two things a THEME does not have to repeat:
      1. the roles that are the SAME in every theme and region (warm grey at
         three alphas, scrims, shadows, coloured fills); a theme may override any.
-     2. the two RUNTIME choices a theme cannot pre-write: which of the eight
-        `--app-brand` points at (`data-accent`), and whether H1–H6 take the
-        accent or the ink (`data-headings`) — the only places a role reads a
-        role; everywhere else a role reads a `--theme-color-*` or a
+     2. the one RUNTIME choice a theme cannot pre-write: whether H1–H6 take
+        the brand or the ink (`data-headings`) — the only place a role reads
+        a role; everywhere else a role reads a `--theme-color-*` or a
         `color-mix` of one, never another role.
    ============================================================================= */
 
@@ -23,7 +22,7 @@
     --app-well: color-mix(in srgb, var(--theme-color-gray) 30%, transparent);
     /* The veil a drawer or sheet lays over the page: black at low alpha in
        EVERY theme, the dark one included — a light veil pushes nothing back. */
-    --app-scrim: color-mix(in srgb, var(--theme-color-black) 20%, transparent);
+    --app-scrim: color-mix(in srgb, var(--theme-color-black) 50%, transparent);
     /* The image viewer's scrim and the ink on it — a lightbox is dark on every
        ground. Two roles so the component sheet reads no palette entry. */
     --app-scrim-deep: color-mix(in srgb, var(--theme-color-black) 88%, transparent);
@@ -41,31 +40,30 @@
     /* The fill of a coloured piece of paper (a note's banner). Since the mark
        stopped following the ground this is the SAME step `--app-<hue>` is, and
        the pair is kept apart only because a banner may yet want its own step.
-       Eight lines because a custom property cannot compose another's name. */
+       Seven lines because a custom property cannot compose another's name. */
+    --app-1-fill: var(--theme-color-1-300);
+    --app-2-fill: var(--theme-color-2-300);
+    --app-3-fill: var(--theme-color-3-300);
     --app-4-fill: var(--theme-color-4-300);
     --app-5-fill: var(--theme-color-5-300);
     --app-6-fill: var(--theme-color-6-300);
     --app-7-fill: var(--theme-color-7-300);
-    --app-1-fill: var(--theme-color-1-300);
-    --app-2-fill: var(--theme-color-2-300);
-    --app-3-fill: var(--theme-color-3-300);
-    --app-neutral-fill: var(--theme-color-neutral-300);
 
     /* The fill that CARRIES text (a notebook's card). The same vivid step as
        every other fill: what makes it carry text is the ink over it, not a
        darker colour under it. Theme- and region-blind, like the fill above:
        a notebook's colour is what its owner knows it by. */
+    --app-1-solid: var(--theme-color-1-300);
+    --app-2-solid: var(--theme-color-2-300);
+    --app-3-solid: var(--theme-color-3-300);
     --app-4-solid: var(--theme-color-4-300);
     --app-5-solid: var(--theme-color-5-300);
     --app-6-solid: var(--theme-color-6-300);
     --app-7-solid: var(--theme-color-7-300);
-    --app-1-solid: var(--theme-color-1-300);
-    --app-2-solid: var(--theme-color-2-300);
-    --app-3-solid: var(--theme-color-3-300);
-    --app-neutral-solid: var(--theme-color-neutral-300);
-    /* The ink on any of them: the dark ground, which clears 7:1 on all eight
-       because every fill is the same step and the step is pinned to a tone
-       (lib/architecture.test.js reads this line rather than assuming it). */
+    /* The ink on any of them: the dark ground, which clears 4.5:1 on all
+       seven (lib/architecture.test.js reads this line rather than assuming
+       it). The app's own strong fill is another pair: `--app-brand-solid`
+       with `--app-brand-on-solid`, assigned by the mode. */
     --app-on-solid: var(--theme-color-black);
 
     /* A region carries its own ink, so anything inside it starts readable —
@@ -74,124 +72,9 @@
   }
 
   /* ---------------------------------------------------------------------------
-     THE APP ACCENT — the first runtime choice. `data-accent` on <html> (the
-     notebook's `accentColor`) picks which of the eight is the brand; absent
-     or unknown is blue. Eight rules because a custom property cannot compose
-     the name of another; a descendant selector so one attribute reaches both regions.
-     --------------------------------------------------------------------------- */
-  [data-region] {
-    --app-brand-1: var(--app-1-1);
-    --app-brand-2: var(--app-1-2);
-    --app-brand-3: var(--app-1-3);
-    --app-brand-4: var(--app-1-4);
-    --app-brand-5: var(--app-1-5);
-    --app-brand-6: var(--app-1-6);
-    --app-brand: var(--app-1);
-    --app-brand-ink: var(--app-1-ink);
-    --app-brand-weak: var(--app-1-tint);
-    --app-brand-outline: var(--app-1-line);
-  }
-  [data-accent="6"] [data-region] {
-    --app-brand-1: var(--app-6-1);
-    --app-brand-2: var(--app-6-2);
-    --app-brand-3: var(--app-6-3);
-    --app-brand-4: var(--app-6-4);
-    --app-brand-5: var(--app-6-5);
-    --app-brand-6: var(--app-6-6);
-    --app-brand: var(--app-6);
-    --app-brand-ink: var(--app-6-ink);
-    --app-brand-weak: var(--app-6-tint);
-    --app-brand-outline: var(--app-6-line);
-  }
-  [data-accent="5"] [data-region] {
-    --app-brand-1: var(--app-5-1);
-    --app-brand-2: var(--app-5-2);
-    --app-brand-3: var(--app-5-3);
-    --app-brand-4: var(--app-5-4);
-    --app-brand-5: var(--app-5-5);
-    --app-brand-6: var(--app-5-6);
-    --app-brand: var(--app-5);
-    --app-brand-ink: var(--app-5-ink);
-    --app-brand-weak: var(--app-5-tint);
-    --app-brand-outline: var(--app-5-line);
-  }
-  [data-accent="3"] [data-region] {
-    --app-brand-1: var(--app-3-1);
-    --app-brand-2: var(--app-3-2);
-    --app-brand-3: var(--app-3-3);
-    --app-brand-4: var(--app-3-4);
-    --app-brand-5: var(--app-3-5);
-    --app-brand-6: var(--app-3-6);
-    --app-brand: var(--app-3);
-    --app-brand-ink: var(--app-3-ink);
-    --app-brand-weak: var(--app-3-tint);
-    --app-brand-outline: var(--app-3-line);
-  }
-  [data-accent="7"] [data-region] {
-    --app-brand-1: var(--app-7-1);
-    --app-brand-2: var(--app-7-2);
-    --app-brand-3: var(--app-7-3);
-    --app-brand-4: var(--app-7-4);
-    --app-brand-5: var(--app-7-5);
-    --app-brand-6: var(--app-7-6);
-    --app-brand: var(--app-7);
-    --app-brand-ink: var(--app-7-ink);
-    --app-brand-weak: var(--app-7-tint);
-    --app-brand-outline: var(--app-7-line);
-  }
-  [data-accent="1"] [data-region] {
-    --app-brand-1: var(--app-1-1);
-    --app-brand-2: var(--app-1-2);
-    --app-brand-3: var(--app-1-3);
-    --app-brand-4: var(--app-1-4);
-    --app-brand-5: var(--app-1-5);
-    --app-brand-6: var(--app-1-6);
-    --app-brand: var(--app-1);
-    --app-brand-ink: var(--app-1-ink);
-    --app-brand-weak: var(--app-1-tint);
-    --app-brand-outline: var(--app-1-line);
-  }
-  [data-accent="4"] [data-region] {
-    --app-brand-1: var(--app-4-1);
-    --app-brand-2: var(--app-4-2);
-    --app-brand-3: var(--app-4-3);
-    --app-brand-4: var(--app-4-4);
-    --app-brand-5: var(--app-4-5);
-    --app-brand-6: var(--app-4-6);
-    --app-brand: var(--app-4);
-    --app-brand-ink: var(--app-4-ink);
-    --app-brand-weak: var(--app-4-tint);
-    --app-brand-outline: var(--app-4-line);
-  }
-  [data-accent="2"] [data-region] {
-    --app-brand-1: var(--app-2-1);
-    --app-brand-2: var(--app-2-2);
-    --app-brand-3: var(--app-2-3);
-    --app-brand-4: var(--app-2-4);
-    --app-brand-5: var(--app-2-5);
-    --app-brand-6: var(--app-2-6);
-    --app-brand: var(--app-2);
-    --app-brand-ink: var(--app-2-ink);
-    --app-brand-weak: var(--app-2-tint);
-    --app-brand-outline: var(--app-2-line);
-  }
-  [data-accent="neutral"] [data-region] {
-    --app-brand-1: var(--app-neutral-1);
-    --app-brand-2: var(--app-neutral-2);
-    --app-brand-3: var(--app-neutral-3);
-    --app-brand-4: var(--app-neutral-4);
-    --app-brand-5: var(--app-neutral-5);
-    --app-brand-6: var(--app-neutral-6);
-    --app-brand: var(--app-neutral);
-    --app-brand-ink: var(--app-neutral-ink);
-    --app-brand-weak: var(--app-neutral-tint);
-    --app-brand-outline: var(--app-neutral-line);
-  }
-
-  /* ---------------------------------------------------------------------------
-     THE HEADING COLOUR — the second runtime choice, and the last place a role
-     reads a role. Six rungs in HALF steps, because six pure palette steps run
-     out of contrast (styles/modes/jott.css); H6 is faint on purpose. Accent by
+     THE HEADING COLOUR — the runtime choice, and the one place a role reads a
+     role. Six rungs in HALF steps, because six pure palette steps run out of
+     contrast (styles/modes/jott.css); H6 is faint on purpose. The brand by
      default; `headingColor: "ink"` spends the same six rungs on alpha instead.
      --------------------------------------------------------------------------- */
   [data-region] {

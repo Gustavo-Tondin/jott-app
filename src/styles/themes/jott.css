@@ -8,122 +8,123 @@
    a notebook's theme leaves out still has a value. No `@layer`: the notebook
    copy is injected plain, and this file stays byte-identical to it. */
 
-/* TONE GRID — the eight run all seven steps, status runs four (CIE L* targets):
+/* TONE GRID — seven steps (CIE L* targets); status runs five of them:
      100 → 92  quiet fill on a LIGHT ground
      200 → 80  emphasis INK on a DARK ground (H1, H2)
-     300 → 70  EVERY FILL, on both grounds; and ink on a DARK one (H3, icons)
+     300 → 70  EVERY MARK, on both grounds; and ink on a DARK one (H3, icons)
      400 → 58  the soft step (H4–H6)
      500 → 48  ink on a LIGHT ground
      600 → 34  emphasis ink on a LIGHT ground
      700 → 18  quiet fill on a DARK ground
-   A fill does not follow the ground — 300 everywhere, with the dark ground as
-   its ink at 7:1 — because nothing is read off a dot or a banner. Only INK
-   still has two halves. Contrast floors, not tones: 200/600 at 7:1 and 300/500
-   at 4.5:1 against their ground (lib/architecture.test.js measures this file). */
+   RED (4 and danger) runs DARKER from 200 to 500 (76 · 60 · 50 · 40): at the
+   grid's tone a red is salmon. The warm three also carry more chroma than the
+   cool four, or they read khaki and beige. The floors hold for every family:
+   200/600 at 7:1 and 300/500 at 4.5:1 against their ground
+   (lib/architecture.test.js measures this file). */
 :root {
-  /* THE GROUNDS — the two neutrals a region is painted with; `-tint` is the
-     step AWAY from the pure one (darker on light, lighter on dark). `gray`
-     belongs to neither: a warm grey used at low alpha for hairlines, tracks
-     and disabled ink, so one value reads on white and on black alike. */
-  --theme-color-white: #fbfbfb;
-  --theme-color-white-tint: #ecebea;
-  --theme-color-black: #1e1e1e;
-  --theme-color-black-tint: #2b2b2b;
-  --theme-color-gray: #a39f9b;
+  /* THE GROUNDS — the two neutrals a region is painted with. `white` is the
+     PAPER and `white-tint` the pure white above it; `black` is the deepest
+     and `black-tint` the step above it. `gray` belongs to neither: a warm
+     grey used at low alpha for hairlines, tracks and disabled ink, so one
+     value reads on a light ground and on a dark one alike. */
+  --theme-color-white: #f7f6f2;
+  --theme-color-white-tint: #ffffff;
+  --theme-color-black: #1a1916;
+  --theme-color-black-tint: #2b2925;
+  --theme-color-gray: #b4b0a8;
 
-  /* THE EIGHT — seven hues and `neutral` (the white↔black family, one entry
-     rather than two, exactly like blue). As a MARK every family is step 300 on
-     both grounds; as INK it still has a light half and a dark half, and
-     `neutral` runs on the grounds' own axis, one step further out. */
+  /* THE BRAND — the app's own blue, and no one's choice: action and now (the
+     chosen day, the button that creates, a link). Never the colour of a place. */
+  --theme-color-brand-100: #dde9ff;
+  --theme-color-brand-200: #acc7fe;
+  --theme-color-brand-300: #84aafd;
+  --theme-color-brand-400: #5c88ee;
+  --theme-color-brand-500: #2557e5;
+  --theme-color-brand-600: #2b4c9b;
+  --theme-color-brand-700: #1a2b50;
 
-  --theme-color-6-100: #efe8cf;
-  --theme-color-6-200: #d8c683;
-  --theme-color-6-300: #c9a915;
-  --theme-color-6-400: #a48903;
-  --theme-color-6-500: #877004;
-  --theme-color-6-600: #5f4f04;
-  --theme-color-6-700: #352b00;
+  /* THE SEVEN — the colours of PLACES (a space, a group, a banner), numbered
+     around the wheel: 1 blue · 2 violet · 3 pink · 4 red · 5 orange ·
+     6 yellow · 7 green. As a MARK every one is step 300 on both grounds; as
+     INK it has a light half and a dark half. */
+  --theme-color-1-100: #d1edff;
+  --theme-color-1-200: #93d0f4;
+  --theme-color-1-300: #65b7e4;
+  --theme-color-1-400: #3697c8;
+  --theme-color-1-500: #0577a6;
+  --theme-color-1-600: #00587d;
+  --theme-color-1-700: #0d3043;
 
-  --theme-color-5-100: #fce4d2;
-  --theme-color-5-200: #f9b989;
-  --theme-color-5-300: #f79237;
-  --theme-color-5-400: #d37200;
-  --theme-color-5-500: #ae5d00;
-  --theme-color-5-600: #7c4100;
-  --theme-color-5-700: #472200;
+  --theme-color-2-100: #e6e6fe;
+  --theme-color-2-200: #c1c1fb;
+  --theme-color-2-300: #a5a4ed;
+  --theme-color-2-400: #8683d1;
+  --theme-color-2-500: #6964af;
+  --theme-color-2-600: #4d4985;
+  --theme-color-2-700: #2a2946;
 
-  --theme-color-3-100: #fce1f2;
-  --theme-color-3-200: #f5b2de;
-  --theme-color-3-300: #f485d2;
-  --theme-color-3-400: #d264b2;
-  --theme-color-3-500: #b54996;
-  --theme-color-3-600: #852e6d;
-  --theme-color-3-700: #441f39;
+  --theme-color-3-100: #ffe0eb;
+  --theme-color-3-200: #f5b5cc;
+  --theme-color-3-300: #e494b2;
+  --theme-color-3-400: #c77193;
+  --theme-color-3-500: #a45274;
+  --theme-color-3-600: #7c3a56;
+  --theme-color-3-700: #42222f;
 
-  --theme-color-7-100: #d6eedf;
-  --theme-color-7-200: #8cd6ab;
-  --theme-color-7-300: #12c37c;
-  --theme-color-7-400: #00a063;
-  --theme-color-7-500: #008351;
-  --theme-color-7-600: #005c37;
-  --theme-color-7-700: #00341d;
+  --theme-color-4-100: #ffdfdd;
+  --theme-color-4-200: #f7a7a3;
+  --theme-color-4-300: #e06d6a;
+  --theme-color-4-400: #c74e4e;
+  --theme-color-4-500: #ab3437;
+  --theme-color-4-600: #812b2c;
+  --theme-color-4-700: #461f1e;
 
-  --theme-color-1-100: #d8eafd;
-  --theme-color-1-200: #9bcbfa;
-  --theme-color-1-300: #62b1f9;
-  --theme-color-1-400: #2d90e1;
-  --theme-color-1-500: #0076c3;
-  --theme-color-1-600: #00538c;
-  --theme-color-1-700: #0d2e4a;
+  --theme-color-5-100: #ffe2cc;
+  --theme-color-5-200: #f7b889;
+  --theme-color-5-300: #e99653;
+  --theme-color-5-400: #ca7322;
+  --theme-color-5-500: #a15708;
+  --theme-color-5-600: #794108;
+  --theme-color-5-700: #41250e;
 
-  --theme-color-4-100: #ffe2de;
-  --theme-color-4-200: #ffb3ad;
-  --theme-color-4-300: #ff8981;
-  --theme-color-4-400: #f84f4e;
-  --theme-color-4-500: #d73035;
-  --theme-color-4-600: #a0131e;
-  --theme-color-4-700: #511918;
+  --theme-color-6-100: #fbe6b3;
+  --theme-color-6-200: #e6c164;
+  --theme-color-6-300: #cea532;
+  --theme-color-6-400: #ac8501;
+  --theme-color-6-500: #876800;
+  --theme-color-6-600: #644c00;
+  --theme-color-6-700: #382a05;
 
-  --theme-color-2-100: #ebe5fe;
-  --theme-color-2-200: #d0bcff;
-  --theme-color-2-300: #bb9aff;
-  --theme-color-2-400: #a46cff;
-  --theme-color-2-500: #8e4cea;
-  --theme-color-2-600: #6532ac;
-  --theme-color-2-700: #352255;
-
-  --theme-color-neutral-100: #e8e8e8;
-  --theme-color-neutral-200: #c6c6c6;
-  --theme-color-neutral-300: #ababab;
-  --theme-color-neutral-400: #8b8b8b;
-  --theme-color-neutral-500: #727272;
-  --theme-color-neutral-600: #505050;
-  --theme-color-neutral-700: #2c2c2c;
+  --theme-color-7-100: #cdf0de;
+  --theme-color-7-200: #92d4b5;
+  --theme-color-7-300: #63bc95;
+  --theme-color-7-400: #329d74;
+  --theme-color-7-500: #037d57;
+  --theme-color-7-600: #015c3f;
+  --theme-color-7-700: #0c3223;
 
   /* STATUS — danger, warning, success: families of their OWN, seeded from
-     red, yellow and green. A theme may make its `red` sea-green; the error
-     notice, the overdue date and the `!!!` must not follow it. Softer than
-     the eight (make-theme.py, STATUS_CHROMA), so a warning never passes for
-     a colour someone picked. FIVE steps: 300/500 the ink per ground,
-     700/100 the wash, 200 the fill on both grounds. No ladder. */
+     red, yellow and green. A theme may make its `4` sea-green; the error
+     notice and the overdue date must not follow it. FIVE steps: 300/500 the
+     ink per ground, 700/100 the wash, 200 the fill on both grounds. No ladder. */
 
-  --theme-color-danger-100: #fddedb;
-  --theme-color-danger-200: #feaba4;
-  --theme-color-danger-300: #f19089;
-  --theme-color-danger-500: #d53337;
-  --theme-color-danger-700: #3d2625;
+  --theme-color-danger-100: #ffe0dc;
+  --theme-color-danger-200: #f7a89f;
+  --theme-color-danger-300: #e06d65;
+  --theme-color-danger-500: #ab3431;
+  --theme-color-danger-700: #461f1c;
 
-  --theme-color-warning-100: #efe8cf;
-  --theme-color-warning-200: #e2cb74;
-  --theme-color-warning-300: #c3aa46;
-  --theme-color-warning-500: #837125;
-  --theme-color-warning-700: #312c18;
+  --theme-color-warning-100: #fbe5bb;
+  --theme-color-warning-200: #e8c275;
+  --theme-color-warning-300: #cea448;
+  --theme-color-warning-500: #89660e;
+  --theme-color-warning-700: #382a0b;
 
-  --theme-color-success-100: #d5efdf;
-  --theme-color-success-200: #86deac;
-  --theme-color-success-300: #4cbf85;
-  --theme-color-success-500: #298156;
-  --theme-color-success-700: #1c3125;
+  --theme-color-success-100: #d6eedd;
+  --theme-color-success-200: #a4d1b3;
+  --theme-color-success-300: #7fb892;
+  --theme-color-success-500: #3a7953;
+  --theme-color-success-700: #193122;
 
   /* SHAPE — the spacing scale (named by the design's px, valued in rem) and
      the radius ladder (read by the SIZE of the object: the bigger the box,
@@ -147,5 +148,6 @@
   --theme-radius-md: 0.75rem;
   --theme-radius-lg: 1rem;
   --theme-radius-xl: 1.25rem;
+  --theme-radius-xxl: 1.5rem;
   --theme-radius-pill: 62.5rem;
 }

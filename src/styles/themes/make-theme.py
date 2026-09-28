@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """Write a Jott theme from a handful of colours you like.
 
-A theme is 91 tokens, and 68 of them are arithmetic: every family runs the same
-seven tones, and the app's contrast promises depend on hitting them. Choosing
+A theme is 95 tokens, and most of them are arithmetic: every family runs the
+same seven tones, and the app's contrast promises depend on hitting them. Choosing
 those by hand is how a theme ends up pretty in one region and unreadable in the
 other. So you choose the colours; this fills in the grid.
 
     ./make-theme.py --name midnight \
         --paper "#f7f6f4" --ground "#16151a" \
-        --1 "#0076c3" --4 "#d73035" --7 "#12c37c"
+        --brand "#2557e5" --4 "#ab3437" --7 "#037d57"
 
 Every slot you leave out keeps the factory theme's hue. What is read from the
 colour you give is its HUE — the tone and the saturation are rebuilt on the
@@ -17,8 +17,10 @@ grid, which is why a muddy pick still comes out as a usable ramp.
 Output goes to stdout, or to a file with -o. Drop it in `.jott/themes/` and the
 app offers it in Settings › Display › Theme.
 
-Slots are numbered, not named (documentation/theming.md): 1 is the app's own
-and the rest walk the wheel. `neutral` is the grey axis and takes no hue.
+`brand` is the app's own colour. The seven slots are the colours of places,
+numbered, not named (documentation/theming.md), walking the wheel from blue.
+The factory theme is tuned by hand past this grid (a darker red, more chroma
+in the warm three); what this writes is the grid itself.
 Requires only the standard library.
 
     --check <file>   re-measure an existing theme instead of writing one
@@ -115,8 +117,8 @@ TARGET = {100: 92, 200: 80, 300: 70, 400: 58, 500: 48, 600: 34, 700: 18}
 HUE_STEPS = list(TARGET)
 STATUS_STEPS = [100, 200, 300, 500, 700]
 CHROMA = 0.92  # of the gamut edge; the factory theme sits about here
-# Status is quieter than the eight, so a warning never reads as a colour someone
-# picked. The inks (300/500) take a share of the gamut edge; the surfaces
+# Status is quieter than the places, so a warning never reads as a colour
+# someone picked. The inks (300/500) take a share of the gamut edge; the surfaces
 # (wash 100/700, fill 200) take the SAME absolute OKLCH chroma for all three, so
 # no status looks faded beside another. The fill sits a shade above the grid's
 # 200 so a yellow block still reads yellow (within the 4 L* the suite allows).
@@ -191,13 +193,13 @@ def status_family(H):
     return {s: fam[s] for s in STATUS_STEPS}
 
 
-def grey(steps=HUE_STEPS):
-    return {s: step(0, TARGET[s], chroma=0.0) for s in steps}
-
-
-# The factory hues, by slot — what a slot you do not mention keeps.
-FACTORY = {"1": 248, "2": 298, "3": 340, "4": 25, "5": 58, "6": 95, "7": 158}
+# The factory hues — what a family you do not mention keeps.
+FACTORY = {"brand": 265, "1": 235, "2": 285, "3": 355, "4": 23, "5": 58, "6": 88, "7": 163}
 SEEDS = {"danger": "4", "warning": "6", "success": "7"}
+# Tones a family may hold INSTEAD of the grid's: the factory red runs darker
+# (at the grid's tone it is salmon), and the brand's 500 is a shade deeper.
+RED = {200: 76, 300: 60, 400: 50, 500: 40}
+OWN_TONE = {"4": RED, "danger": RED, "brand": {500: 43}}
 
 FLOORS = [(200, "ground", 7.0), (300, "ground", 4.5), (500, "paper", 4.5), (600, "paper", 7.0)]
 
@@ -208,7 +210,8 @@ def check(theme, paper, ground):
     bad = []
     for name, steps in theme.items():
         for s, hex_str in steps.items():
-            drift = abs(lstar(hex_str) - TARGET[s])
+            tones = {TARGET[s], OWN_TONE.get(name, {}).get(s, TARGET[s])}
+            drift = min(abs(lstar(hex_str) - t) for t in tones)
             if drift > 4:
                 bad.append(f"{name}-{s}: tone off by {drift:.1f} L*")
         for s, against, floor in FLOORS:
@@ -232,7 +235,7 @@ def render(name, theme, paper, ground, paper_tint, ground_tint, gray):
            f"  --theme-color-black-tint: {ground_tint};",
            f"  --theme-color-gray: {gray};",
            ""]
-    for slot in list(FACTORY) + ["neutral"]:
+    for slot in FACTORY:
         for s in HUE_STEPS:
             out.append(f"  --theme-color-{slot}-{s}: {theme[slot][s]};")
         out.append("")
@@ -249,13 +252,14 @@ def main():
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--name", default="my theme")
     ap.add_argument("-o", "--out", help="write here instead of stdout")
-    ap.add_argument("--paper", default="#fbfbfb", help="the light ground")
-    ap.add_argument("--ground", default="#1e1e1e", help="the dark ground")
-    ap.add_argument("--paper-tint", help="one step off the paper (default: derived)")
+    ap.add_argument("--paper", default="#f7f6f2", help="the light ground")
+    ap.add_argument("--ground", default="#1a1916", help="the dark ground")
+    ap.add_argument("--paper-tint", default="#ffffff", help="the pure white above the paper")
     ap.add_argument("--ground-tint", help="one step off the dark ground (default: derived)")
-    ap.add_argument("--gray", default="#a39f9b", help="the warm grey used at low alpha")
+    ap.add_argument("--gray", default="#b4b0a8", help="the warm grey used at low alpha")
     for slot in FACTORY:
-        ap.add_argument(f"--{slot}", metavar="HEX", help=f"a colour for slot {slot}")
+        what = "the app's own colour" if slot == "brand" else f"a colour for slot {slot}"
+        ap.add_argument(f"--{slot}", metavar="HEX", help=what)
     ap.add_argument("--check", metavar="FILE", help="measure an existing theme and exit")
     ap.add_argument("--debug", action="store_true")
     args = ap.parse_args()
@@ -270,8 +274,8 @@ def main():
             found.setdefault(m.group(1), {})[int(m.group(2))] = m.group(3).lower()
         paper = re.search(r"--theme-color-white:\s*(#[0-9a-fA-F]{6})", css)
         ground = re.search(r"--theme-color-black:\s*(#[0-9a-fA-F]{6})", css)
-        bad = check(found, paper.group(1) if paper else "#fbfbfb",
-                    ground.group(1) if ground else "#1e1e1e")
+        bad = check(found, paper.group(1) if paper else "#f7f6f2",
+                    ground.group(1) if ground else "#1a1916")
         for b in bad:
             log.warning(b)
         log.info("%s: %d families, %d problems", args.check, len(found), len(bad))
@@ -284,14 +288,13 @@ def main():
         if given:
             log.info("slot %s: hue %.0f from %s", slot, H, given)
         theme[slot] = family(H)
-    theme["neutral"] = grey()
     for status, seed in SEEDS.items():
         given = getattr(args, seed)
         H = hue_of(given) if given else FACTORY[seed]
         theme[status] = status_family(H)
 
     # A tint is the ground one step in, not a colour anyone should have to pick.
-    paper_tint = args.paper_tint or _to_hex([c * 0.94 for c in _to_linear(args.paper)])
+    paper_tint = args.paper_tint
     ground_tint = args.ground_tint or _to_hex([min(1.0, c * 1.9 + 0.008)
                                                for c in _to_linear(args.ground)])
 

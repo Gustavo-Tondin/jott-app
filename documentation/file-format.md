@@ -184,10 +184,11 @@ the first line of the body:
 
 Comment syntax because every Markdown renderer hides it, so the file stays
 normal everywhere else. **The value decides the type**: an image extension is
-an image, anything else is a colour — one of the eight **slots** (`1`…`7`,
-or `neutral`), the same ones a space carries. The names this app wrote before
-the slots were numbered (`yellow`, `orange`, …) are still read, and a
-`#rrggbb` written by hand is kept and used as-is. The banner is not body
+an image, anything else is a colour — one of the seven **slots** (`1`…`7`),
+the same ones a space carries. The names this app wrote before
+the slots were numbered (`yellow`, `orange`, …) are still read, `neutral`
+(a colour the app no longer draws) reads as no colour, and a `#rrggbb`
+written by hand is kept and used as-is. The banner is not body
 text; the app separates it and writes it back untouched.
 
 ### References
@@ -349,7 +350,7 @@ order you dragged things into.
 |---|---|
 | `type` | `tasks`, `notes`, or `home` on the fixed Home. **Never cleared**: a type this build doesn't know is kept, and the space is shown as unsupported rather than repurposed |
 | `name` | display name — only the three `jott.*` spaces use it |
-| `color`, `icon` | a colour **slot** (`"1"`…`"7"`, or `"neutral"`), and a [Phosphor](https://phosphoricons.com) icon name. While the sidebar deals its own colours (`rainbowSpaces` in `config.json`, on unless you turn it off) `color` is kept but not shown; leaving the rainbow writes the colours that were on screen into every space and group at the top level, and from then on they are what you see. The slots are numbered rather than named because the theme decides what each one looks like; the names this app wrote before (`"blue"`, `"orange"`, …) are still read. A `#rrggbb` written by hand is kept and used as-is. |
+| `color`, `icon` | a colour **slot** (`"1"`…`"7"`), and a [Phosphor](https://phosphoricons.com) icon name. While the sidebar deals its own colours (`rainbowSpaces` in `config.json`, on unless you turn it off) `color` is kept but not shown; leaving the rainbow writes the colours that were on screen into every space and group at the top level, and from then on they are what you see. The slots are numbered rather than named because the theme decides what each one looks like; the names this app wrote before (`"blue"`, `"orange"`, …) are still read. A `#rrggbb` written by hand is kept and used as-is. |
 | `sort` | `custom` (the default, and what anything unknown reads as), `name`, `created` or `due`; a notes space also knows `completed`. In a **tasks** space the `.md` is always the order the app shows: choosing a sort rewrites every list of the space in it, and every later change keeps it, pinned tasks first. When a list stops following a sort by name or date — reordered by hand in another editor — the app switches the space to `custom` and keeps the file as you left it |
 | `sortDirection` | `up` turns a sort over: Z→A, oldest first, latest due first. Absent is the default: A→Z, newest first, soonest due first. Tasks without the date stay below the dated ones either way |
 | `order` | the custom order: task ids in a tasks space, note paths in a notes one. Written when you drag; choosing `custom` puts a tasks space's lists back in it, with the tasks it doesn't name (created since) on top |

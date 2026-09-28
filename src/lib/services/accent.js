@@ -1,4 +1,5 @@
-// The eight colour SLOTS, and how a stored choice becomes CSS.
+// The seven colour SLOTS of a PLACE, and how a stored choice becomes CSS.
+// The app's own blue is not one of them: it is the brand, and nobody picks it.
 // Stored is the slot (`"5"`), never a hex. A slot resolves to `var(--app-5)` —
 // ONE colour, the same on the dark chrome and the light canvas, because a mark
 // is not read and has no contrast to protect. What IS read takes `accentInk`,
@@ -6,20 +7,19 @@
 // written by hand passes through untouched, and the names this app used before
 // the slots were numbered still resolve on the way in (`LEGACY`).
 
-/// The eight SLOTS, in the order every swatch row draws and the order the
-/// sidebar's rainbow deals (services/spaceColors.js): 1 is the app's own, and
-/// the six after it walk the wheel. They are NUMBERED, not named, because a
-/// theme owns what a slot looks like — a palette that paints 6 lilac should not
-/// have to keep calling it "yellow". The word a person reads is a label
-/// (`S.colorName`), not the identity. `neutral` keeps its name: it is not a
-/// hue slot but the grounds' own axis, and no theme repurposes it.
-export const ACCENTS = ["1", "2", "3", "4", "5", "6", "7", "neutral"];
+/// The seven SLOTS, in the order every swatch row draws and the order the
+/// sidebar's rainbow deals (services/spaceColors.js), walking the wheel from
+/// blue. They are NUMBERED, not named, because a theme owns what a slot looks
+/// like — a palette that paints 6 lilac should not have to keep calling it
+/// "yellow". The word a person reads is a label (`S.colorName`).
+export const ACCENTS = ["1", "2", "3", "4", "5", "6", "7"];
 
-/// The seven hue slots — the eight without `neutral`.
-export const HUES = ACCENTS.filter((name) => name !== "neutral");
-
-/// What the app ships as, and what an unknown or missing value falls back to.
+/// The colour a notebook's card wears when its owner picked none.
 export const DEFAULT_ACCENT = "1";
+
+/// A colour this app used to offer and no longer draws. A file that still
+/// says so reads as "no colour of its own"; the file is left as it is.
+const RETIRED = ["neutral"];
 
 /// What this app wrote before the slots were numbered. A notebook from then
 /// still says `"orange"`, and letting a rename empty its spaces would be the
@@ -34,18 +34,23 @@ export function slotOf(value) {
   return LEGACY[value] ?? null;
 }
 
-/// True for one of the eight, an old name included.
+/// True for one of the seven, an old name included.
 export function isAccent(value) {
   return slotOf(value) !== null;
 }
 
+/// The stored value as the painters below take it: `null` for nothing and
+/// for a retired colour, so both fall back to the brand.
+const stored = (value) => (!value || RETIRED.includes(value) ? null : value);
+
 /// The CSS value for a stored colour choice — the colour as a MARK: a dot, a
 /// pill, a bar, any surface with nothing written on it. One value for both
 /// grounds (the palette's vivid step 300), the value itself for a raw colour,
-/// and `null` for "no colour of its own" — callers fall back to the theme
-/// accent, usually by leaving the custom property unset so its
+/// and `null` for "no colour of its own" — callers fall back to the brand,
+/// usually by leaving the custom property unset so its
 /// `var(…, fallback)` applies.
 export function accentColor(value) {
+  value = stored(value);
   if (!value) return null;
   const s = slotOf(value);
   if (s) return `var(--app-${s})`;
@@ -58,6 +63,7 @@ export function accentColor(value) {
 /// the white canvas, under the 3:1 a stroke needs and the 4.5:1 a word needs.
 /// A raw colour has no ink of its own and answers itself.
 export function accentInk(value) {
+  value = stored(value);
   if (!value) return null;
   const s = slotOf(value);
   if (s) return `var(--app-${s}-ink)`;
@@ -68,6 +74,7 @@ export function accentInk(value) {
 /// (faintest) — the ladder H1–H6 stand on (styles/roles.css). A raw colour has
 /// no ladder: rung 1 is the colour itself, the rest fade toward the ground.
 export function accentRung(value, rung) {
+  value = stored(value);
   if (!value) return null;
   const s = slotOf(value);
   if (s) return `var(--app-${s}-${rung})`;
@@ -79,6 +86,7 @@ export function accentRung(value, rung) {
 /// not change with the ground: nothing is written on a banner, so there is no
 /// contrast to protect (styles/roles.css).
 export function accentFill(value) {
+  value = stored(value);
   if (!value) return null;
   const s = slotOf(value);
   if (s) return `var(--app-${s}-fill)`;
@@ -88,8 +96,9 @@ export function accentFill(value) {
 /// The SOLID fill of a surface that carries text — the notebook card on the
 /// picker. The same vivid step every other fill wears; what makes it carry
 /// text is the ink over it, `--app-on-solid`, which is the dark ground and
-/// clears 7:1 on all eight (see `architecture.test.js`). Ground-blind.
+/// clears 4.5:1 on all seven (see `architecture.test.js`). Ground-blind.
 export function accentSolid(value) {
+  value = stored(value);
   if (!value) return null;
   const s = slotOf(value);
   if (s) return `var(--app-${s}-solid)`;
@@ -97,8 +106,9 @@ export function accentSolid(value) {
 }
 
 /// The matching tint — the quiet fill behind something wearing this colour.
-/// The ground's own tint step for one of the eight; a raw colour is mixed down.
+/// The ground's own tint step for one of the seven; a raw colour is mixed down.
 export function accentTint(value) {
+  value = stored(value);
   if (!value) return null;
   const s = slotOf(value);
   if (s) return `var(--app-${s}-tint)`;
@@ -106,9 +116,10 @@ export function accentTint(value) {
 }
 
 /// The matching LINE — the quiet outline of something wearing this colour
-/// (the badge's border). The ground's own `-line` for one of the eight; a raw
+/// (the badge's border). The ground's own `-line` for one of the seven; a raw
 /// colour is mixed down, like its tint.
 export function accentLine(value) {
+  value = stored(value);
   if (!value) return null;
   const s = slotOf(value);
   if (s) return `var(--app-${s}-line)`;

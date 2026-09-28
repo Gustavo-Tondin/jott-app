@@ -43,8 +43,9 @@ describe("seedFrom", () => {
     const seeded = seedFrom({ factory });
     const tokens = themeTokens(seeded);
     expect(tokens.size).toBe(themeTokens(factory).size);
-    // grounds + the eight × the grid + status × the five it is read at + space + radius
-    expect(tokens.size).toBe(5 + 8 * 7 + 3 * 5 + 12 + 6);
+    // grounds + (the brand and the seven) × the grid + status × the five it
+    // is read at + space + radius
+    expect(tokens.size).toBe(5 + 8 * 7 + 3 * 5 + 12 + 7);
     expect(seeded).toMatch(/^\/\*[\s\S]*\*\/\n:root \{\n/);
     expect(seeded).not.toMatch(/data-(theme|mode|region)/);
     expect(seeded).toContain("--theme-color-1-500:");

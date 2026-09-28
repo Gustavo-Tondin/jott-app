@@ -14,7 +14,7 @@ import {
   badgeStyle,
 } from "./accent.js";
 
-describe("the eight colours", () => {
+describe("the seven colours of a place", () => {
   test("a stored NAME becomes a var, never a fixed colour", () => {
     // This is the whole reason the app stores a name: the mark is one value
     // the modes may retheme, and the INK beside it still has a light half and
@@ -40,13 +40,11 @@ describe("the eight colours", () => {
       expect(accentTint(old)).toBe(`var(--app-${slot}-tint)`);
       expect(slotOf(old)).toBe(slot);
     }
-    // `neutral` was never renamed: it is not a hue slot.
-    expect(slotOf("neutral")).toBe("neutral");
     // And the app WRITES slots — the old name is an input, never an output.
     expect(ACCENTS).not.toContain("orange");
   });
 
-  test("nothing chosen is null, so CSS falls back to the theme accent", () => {
+  test("nothing chosen is null, so CSS falls back to the brand", () => {
     for (const empty of [null, undefined, ""]) {
       expect(accentColor(empty)).toBeNull();
       expect(accentTint(empty)).toBeNull();
@@ -89,21 +87,21 @@ describe("the eight colours", () => {
   });
 
 
-  test("the app ships accented with one of the eight", () => {
+  test("a place picks among seven, in slot order", () => {
+    expect(ACCENTS).toEqual(["1", "2", "3", "4", "5", "6", "7"]);
     expect(ACCENTS).toContain(DEFAULT_ACCENT);
-    expect(ACCENTS).toHaveLength(8);
   });
 
-  test("white and black are ONE colour, one entry on one ramp", () => {
-    // Not two entries (2026-08-17): white over black and black over white are
-    // the two ends of one ramp, exactly like a light blue and a dark blue.
-    // Two fixed entries could not both be visible — the app's two regions ARE
-    // white and black, so a fixed neutral vanishes in one of them. As a MARK
-    // it is now the ramp's middle, which is visible against both.
-    expect(isAccent("neutral")).toBe(true);
-    expect(ACCENTS).not.toContain("white");
-    expect(ACCENTS).not.toContain("black");
-    expect(accentColor("neutral")).toBe("var(--app-neutral)");
+  test("a retired colour reads as no colour, and is never a raw value", () => {
+    // `neutral` was the eighth until the brand got a family of its own. A file
+    // that still says so must not reach CSS as the word `neutral`.
+    expect(isAccent("neutral")).toBe(false);
+    expect(ACCENTS).not.toContain("neutral");
+    expect(accentColor("neutral")).toBeNull();
+    expect(accentInk("neutral")).toBeNull();
+    expect(accentSolid("neutral")).toBeNull();
+    expect(accentStyle("neutral")).toBeUndefined();
+    expect(badgeStyle("neutral")).toBeUndefined();
   });
 
   test("six rungs of emphasis, one per heading level", () => {
@@ -130,7 +128,7 @@ describe("the eight colours", () => {
   test("the solid fill is the step that carries text, and it is theme-blind", () => {
     // The same step its sibling `accentFill` wears: what makes this one carry
     // a name and two counts is the ink over it, `--app-on-solid`, which is the
-    // dark ground and clears 7:1 on all eight. `architecture.test.js` reads
+    // dark ground and clears 4.5:1 on all seven. `architecture.test.js` reads
     // that ink off the sheet rather than assuming which one it is.
     expect(accentSolid("blue")).toBe("var(--app-1-solid)");
     for (const name of ACCENTS) {

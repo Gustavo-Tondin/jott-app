@@ -857,15 +857,14 @@
     },
   );
 
-  // Theme, accent and heading colour are ATTRIBUTES on the document root, so
-  // both regions read them; absent = what the app ships. WITH NO NOTEBOOK THE
-  // APP HAS NO LOOK OF ITS OWN: every choice is per machine AND per notebook
-  // (src-tauri/src/prefs.rs), so the picker wears the neutral.
+  // Theme and heading colour are ATTRIBUTES on the document root, so both
+  // regions read them; absent = what the app ships. WITH NO NOTEBOOK THE APP
+  // HAS NO LOOK OF ITS OWN: every choice is per machine AND per notebook
+  // (src-tauri/src/prefs.rs), so the picker wears the factory look.
   $effect(() =>
     setRootData({
       mode: modeAttribute(showsPicker ? "" : layout.mode),
       theme: paletteAttribute(showsPicker ? "" : layout.theme, wornTheme),
-      accent: showsPicker ? "neutral" : layout.accentColor || null,
       headings: !showsPicker && layout.headingColor === "ink" ? "ink" : null,
       noteSize: noteFontSizeAttribute(layout.noteFontSize),
       // Hyphenation is a fact about the whole document (the engine needs the
@@ -884,7 +883,6 @@
   $effect(() => {
     void layout.mode;
     void layout.theme;
-    void layout.accentColor;
     void wornTheme;
     tellSystemBars(
       showsPicker || !canvasRisen ? "chrome" : "canvas",
@@ -1066,7 +1064,7 @@
   // The rainbow is the notebook's call and travels in the layout; the dealing
   // is the service's, so sidebar, title and tab dot agree.
   let rainbowOn = $derived(layout?.rainbowSpaces !== false);
-  let colorRules = $derived({ rainbow: rainbowOn, accent: layout?.accentColor ?? null });
+  let colorRules = $derived({ rainbow: rainbowOn });
   let spColors = $derived(spaceColors(spaces, groups, colorRules));
   let grColors = $derived(groupColors(spaces, groups, colorRules));
 
@@ -1621,7 +1619,7 @@
     rainbow: () => ({
       on: rainbowOn,
       deal: dealtColors(spaces, groups, colorRules),
-      next: nextRainbowColor(spaces, groups, layout?.accentColor ?? null),
+      next: nextRainbowColor(spaces, groups),
     }),
     view: () => view,
     goTo,

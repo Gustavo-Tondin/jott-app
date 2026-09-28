@@ -44,36 +44,39 @@
     /* No vertical padding: the fixed height plus align-items:center is what
        keeps the label centred in the bar. */
     padding-inline: var(--app-space-10);
-    /* The strip belongs to the PANEL: an open tab is the canvas ground showing
-       through the chrome, a closed one sits halfway between the two grounds.
-       One formula, three themes — where the grounds are a step apart the
-       same rule produces a whisper instead of a jump. */
-    background: color-mix(in srgb, var(--app-canvas-ground) 55%, var(--app-bg));
+    /* The strip is CHROME: a closed tab is a name on the bar, the open one is
+       the bar's raised step. */
+    background: transparent;
     border: none;
     border-radius: var(--app-radius-sm);
-    /* The CANVAS's ink, muted — never the chrome's faint grey: the tab is
-       made of canvas material, and the frame's pale ink lands grey-on-grey
-       on it. Ink and fill read from the same ground. */
-    color: color-mix(in srgb, var(--app-canvas-ink) 60%, transparent);
+    color: var(--app-ink-muted);
     transition:
       background var(--app-transition-fast),
       color var(--app-transition-fast);
   }
-  /* Hover: a closed tab rises a little towards the open one's ground. */
   .tabs__item:hover:not(.tabs__item--active) {
-    background: color-mix(in srgb, var(--app-canvas-ground) 75%, var(--app-bg));
+    background: var(--app-hover);
   }
   .tabs__item--active {
-    background: var(--app-canvas-ground);
-    /* And its ink is the CANVAS's, because that is what it is made of now. */
-    color: var(--app-canvas-ink);
-    font-weight: var(--app-weight-bold);
+    background: var(--app-surface);
+    color: var(--app-ink);
+    font-weight: var(--app-weight-semibold);
+  }
+  /* A hairline between two tabs, so closed ones read apart without a fill. */
+  .tabs__item + .tabs__item::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: calc(var(--app-space-4) * -1);
+    inset-block: var(--app-space-2);
+    inline-size: 0.0625rem;
+    background: var(--app-well);
+    border-radius: var(--app-radius-pill);
+    pointer-events: none;
   }
 
   /* The space dot: a .theme-dot (per-tab --dot from dotStyle; the brand for
      a fixed space). Full strength on every tab — it is the only thing naming
-     WHERE a closed tab comes from. NOTE the colour resolves against the
-     CHROME while the fill comes from the canvas; that is the readable half. */
+     WHERE a closed tab comes from. */
   .tabs__dot {
     --dot-size: var(--app-space-6);
   }
@@ -100,19 +103,18 @@
   }
 
   /* .theme-btn--icon; only the tight-fit sizing is its own (the shared
-     padding would outgrow the 28px strip). The × reads against the CANVAS,
-     like the label: a tab is made of the panel's material. */
+     padding would outgrow the 28px strip). */
   .tabs__close {
     flex-shrink: 0;
     padding: var(--app-space-2);
-    color: color-mix(in srgb, var(--app-canvas-ink) 50%, transparent);
+    color: var(--app-ink-faint);
   }
   .tabs__close:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--app-canvas-ink) 10%, transparent);
-    color: var(--app-canvas-ink);
+    background: var(--app-hover);
+    color: var(--app-ink);
   }
   .tabs__item--active .tabs__close {
-    color: color-mix(in srgb, var(--app-canvas-ink) 60%, transparent);
+    color: var(--app-ink-muted);
   }
 
   .tabs__add {
@@ -143,6 +145,9 @@
   }
 
   /* A row, not a chip: full width, and tall enough to hit without aiming. */
+  .tabs--compact .tabs__item + .tabs__item::before {
+    content: none;
+  }
   .tabs--compact .tabs__item {
     inline-size: auto;
     max-inline-size: none;

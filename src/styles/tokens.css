@@ -71,6 +71,7 @@
     --app-radius-md: var(--theme-radius-md); /* 12px */
     --app-radius-lg: var(--theme-radius-lg); /* 16px */
     --app-radius-xl: var(--theme-radius-xl); /* 20px */
+    --app-radius-xxl: var(--theme-radius-xxl); /* 24px */
     /* The pill: any value past half the tallest control rounds it fully. */
     --app-radius-pill: var(--theme-radius-pill);
 

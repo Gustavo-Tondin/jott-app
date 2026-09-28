@@ -188,10 +188,6 @@ describe("frontend architecture", () => {
     for (const [name, css] of themes()) {
       for (const m of css.matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/g)) {
         for (const ref of m[2].matchAll(/var\(\s*(--[a-z0-9-]+)/g)) {
-          // `--app-canvas-*` counts as a role too: it is theme-assigned and
-          // component-read exactly like `--app-*` (tabs.css reads it), so
-          // `--app-bg: var(--app-canvas-ground)` would be the forbidden
-          // two-hop chain wearing a different prefix.
           if (ref[1].startsWith("--app-")) {
             offenders.push(`${name}: ${m[1]} reads the role ${ref[1]}`);
           }
@@ -396,7 +392,14 @@ describe("frontend architecture", () => {
   // ---------------------------------------------------------------------------
 
   const TARGET = { 100: 92, 200: 80, 300: 70, 400: 58, 500: 48, 600: 34, 700: 18 };
-  const GROUND = { dark: "#1e1e1e", light: "#fbfbfb" };
+  /// Where a family leaves the grid ON PURPOSE. Red runs darker from 200 to
+  /// 500: at the grid's tone it is salmon. The brand's 500 is the one strong
+  /// fill, a little deeper so white text clears AA on it.
+  const RED = { 200: 76, 300: 60, 400: 50, 500: 40 };
+  const OWN_TONE = { 4: RED, danger: RED, brand: { 500: 43 } };
+  /// The DARKEST light ground and the deepest dark one, so a floor measured
+  /// here holds on the other ground of the same end too.
+  const GROUND = { dark: "#1a1916", light: "#f7f6f2" };
 
   /// CIE L* — the definition of a tone, and what the step numbers name.
   function lstar(hex) {
@@ -492,8 +495,8 @@ describe("frontend architecture", () => {
     );
   }
 
-  // The eight SLOTS: seven numbered hues plus `neutral` (services/accent.js).
-  const HUES = ["1", "2", "3", "4", "5", "6", "7", "neutral"];
+  // The seven SLOTS a place picks from (services/accent.js).
+  const HUES = ["1", "2", "3", "4", "5", "6", "7"];
   const palette = () => {
     const css = readFileSync(join(src, "styles", "themes", "jott.css"), "utf8");
     const steps = {};
@@ -509,7 +512,8 @@ describe("frontend architecture", () => {
   };
 
   const STATUS = ["danger", "warning", "success"];
-  /// What a family is REQUIRED to carry. The eight run the whole grid; status
+  /// What a family is REQUIRED to carry. The brand and the seven run the whole
+  /// grid; status
   /// runs the five a status colour is ever read at — the ink per ground (300,
   /// 500), the wash behind it (700, 100) and the fill (200: a swipe's square,
   /// a priority swatch). A status colour is never a heading, so no ladder.
@@ -519,12 +523,12 @@ describe("frontend architecture", () => {
     // The count is the parser's proof of coverage: a ninth colour, or a step
     // written in a shape the regex above cannot read, changes a number here
     // instead of silently dropping out of every measurement.
-    // The eight, plus the three STATUS families (2026-08-26) — seeded from
+    // The brand and the seven, plus the three STATUS families — seeded from
     // red/yellow/green and kept as families of their own, so a theme that
     // moves its red does not move the error notice with it.
     const families = palette();
     expect(Object.keys(families).sort()).toEqual(
-      ["1", "2", "3", "4", "5", "6", "7", "danger", "neutral", "success", "warning"],
+      ["1", "2", "3", "4", "5", "6", "7", "brand", "danger", "success", "warning"],
     );
     for (const [name, steps] of Object.entries(families)) {
       expect(Object.keys(steps).map(Number).sort((a, b) => a - b), `${name}'s steps`).toEqual(
@@ -554,16 +558,17 @@ describe("frontend architecture", () => {
     expect(offenders).toEqual([]);
   });
 
-  test("every colour hits the same tone at the same step", () => {
+  test("every colour hits its tone at every step", () => {
     // A step whose tone drifts is a step whose number lies, and the moment one
     // colour's 500 is lighter than another's the app is back where it started:
-    // a yellow accent unreadable on the canvas while a purple one was fine.
-    // The tolerance is 4 L*, which is the cap the contrast correction may
-    // spend (styles/tokens.css).
+    // a yellow unreadable on the canvas while a purple one was fine. The
+    // tolerance is 4 L*, which is the cap the contrast correction may spend.
+    // `OWN_TONE` names the steps that leave the grid by design, so a drift
+    // anywhere else is still an accident.
     const offenders = [];
     for (const [name, steps] of Object.entries(palette())) {
       for (const step of stepsFor(name)) {
-        const target = TARGET[step];
+        const target = OWN_TONE[name]?.[step] ?? TARGET[step];
         const hex = steps[step];
         if (!hex) {
           offenders.push(`${name}: no step ${step}`);
@@ -576,7 +581,7 @@ describe("frontend architecture", () => {
     expect(offenders).toEqual([]);
   });
 
-  test("the solid accent carries its ink, for all eight", () => {
+  test("the solid colour carries its ink, for all seven and for the brand", () => {
     // The promise `--app-*-solid` makes (styles/roles.css): a notebook's
     // card is that notebook's colour with its name written across it, the same
     // colour on every theme — so the ink over it is fixed, and the fill has to
@@ -607,11 +612,24 @@ describe("frontend architecture", () => {
       const got = ratio(hex, inkHex);
       if (got < 4.5) offenders.push(`${m[1]}-solid: ${got.toFixed(2)}:1 < 4.5:1`);
     }
-    // All eight, so a colour added to the palette without a solid rung is a
+    // The brand's strong fill is a pair of its own, assigned by every mode:
+    // step 500 under the pure white.
+    for (const [name, css] of themes()) {
+      const fill = css.match(/--app-brand-solid:\s*var\(--theme-color-brand-(\d00)\)/);
+      const over = css.match(/--app-brand-on-solid:\s*var\((--theme-color-[a-z0-9-]+)\)/);
+      if (!fill || !over) {
+        offenders.push(`${name}: no brand-solid pair`);
+        continue;
+      }
+      const overHex = tokens.match(new RegExp(`${over[1]}:\\s*(#[0-9a-fA-F]{6})`))?.[1]?.toLowerCase();
+      const got = ratio(families.brand[fill[1]], overHex);
+      if (got < 4.5) offenders.push(`${name}: brand-solid ${got.toFixed(2)}:1 < 4.5:1`);
+    }
+    // All seven, so a colour added to the palette without a solid rung is a
     // notebook whose card cannot be drawn.
     expect(offenders).toEqual([]);
-    // `--app-on-solid` is the ink, not a rung — it is what the eight are
-    // written IN, and counting it as a ninth colour is how this line first
+    // `--app-on-solid` is the ink, not a rung — it is what the seven are
+    // written IN, and counting it as one more colour is how this line first
     // went green against nine.
     expect(
       [...roles.matchAll(/--app-(?!on-)[a-z0-9]+-solid:/g)].length,
@@ -644,8 +662,8 @@ describe("frontend architecture", () => {
 
   test("every step that carries text clears its contrast floor", () => {
     // The promise the scale makes to a screen: take step 300 on the sidebar or
-    // step 500 on the canvas and the text is readable, whichever of the eight
-    // the user picked. 4.5:1 is WCAG AA for body text, 7:1 what the emphasis
+    // step 500 on the canvas and the text is readable, whichever colour the
+    // place wears. 4.5:1 is WCAG AA for body text, 7:1 what the emphasis
     // steps above them are for.
     const floors = [
       [200, GROUND.dark, 7],
@@ -682,17 +700,17 @@ describe("frontend architecture", () => {
     expect(offenders).toEqual([]);
   });
 
-  test("status surfaces carry the same chroma, so none looks faded beside another", () => {
-    // The fill and the two washes of danger and success match the warning's
-    // absolute chroma. A hue the gamut cannot hold that light (a pale red)
-    // falls short only by what two L* darker could not win back.
+  test("status surfaces carry a chroma of the same order, so none looks grey beside another", () => {
+    // The fill and the two washes of danger and success stay within reach of
+    // the warning's chroma. The three were tuned by eye in the design file
+    // (a gold warning, a quiet green), so this is a band, not an equality.
     const families = palette();
     const offenders = [];
     for (const step of [100, 200, 700]) {
       const reference = chroma(families.warning[step]);
       for (const name of ["danger", "success"]) {
         const got = chroma(families[name][step]);
-        if (Math.abs(got - reference) > 0.015) {
+        if (Math.abs(got - reference) > 0.045) {
           offenders.push(`${name}-${step}: C ${got.toFixed(3)} vs warning ${reference.toFixed(3)}`);
         }
       }

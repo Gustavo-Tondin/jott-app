@@ -84,7 +84,7 @@ left alone — that is how a self-contained theme carries an image.
 Three layers, one hop between each:
 
 ```
-THEME   what you write            :root { --theme-color-1-300: #66a3ff; … }
+THEME   what you write            :root { --theme-color-brand-300: #66a3ff; … }
   │     a mode is the function between the two, per region
 MODE    what the app ships        [data-mode="dark"] [data-region="chrome"] {
                                     --app-bg: var(--theme-color-black);
@@ -102,7 +102,7 @@ what goes where, for the app's two regions:
 [data-region="canvas"]   the content panel in the middle
 ```
 
-The jott mode is a black chrome around a white canvas, and that contrast is
+The jott mode is a black chrome around a paper canvas, and that contrast is
 the app's face; light and dark paint both regions the same way. A
 **component** reads `--app-*` only.
 
@@ -128,43 +128,46 @@ is always loaded underneath.
 | Group | Tokens | How many |
 |---|---|---|
 | grounds | `--theme-color-white`, `-white-tint`, `-black`, `-black-tint`, `-gray` | 5 |
-| the eight | `--theme-color-<1 \| 2 \| 3 \| 4 \| 5 \| 6 \| 7 \| neutral>-<100…700>` | 56 |
+| the brand | `--theme-color-brand-<100…700>` | 7 |
+| the seven | `--theme-color-<1 \| 2 \| 3 \| 4 \| 5 \| 6 \| 7>-<100…700>` | 49 |
 | status | `--theme-color-<danger \| warning \| success>-<100 200 300 500 700>` | 15 |
-| shape | `--theme-radius-<xs \| sm \| md \| lg \| xl \| pill>`, `--theme-space-<2 4 6 8 10 12 16 24 32 40 48 64>` | 18 |
+| shape | `--theme-radius-<xs \| sm \| md \| lg \| xl \| xxl \| pill>`, `--theme-space-<2 4 6 8 10 12 16 24 32 40 48 64>` | 19 |
 
 Things worth knowing before you change them:
 
-- **The eight run the same seven steps** (100 palest → 700 deepest) on one
-  tone grid, and the modes read a *step* — 300 for every fill and for ink on
+- **The brand and the seven run the same seven steps** (100 palest → 700
+  deepest) on one tone grid, and the modes read a *step* — 300 for every fill and for ink on
   a dark ground, 500 for ink on a light one, 200/600 for emphasis, 100/700
   for the quiet fills. Keep the grid and the whole app follows; break it and a
   heading may stop clearing its ground. Four steps are pinned to a contrast
   floor: 200/600 at 7:1, 300/500 at 4.5:1 against their ground. (Tests
   measure the factory file; a notebook theme is yours, and nothing checks it
-  but your eyes.)
-- **The seven hue slots are NUMBERED, not named.** Slot 1 is the app's own
-  and the rest walk the wheel; what each looks like is yours to decide, which
-  is the whole point — a palette that paints slot 6 lilac should not have to
-  keep calling it "yellow". The word a person reads in a menu is a label, not
-  the identity. `neutral` keeps its name because it is not a hue: it is the
-  white↔black family, and the modes read it one step further out because it
-  runs on the same axis as the grounds.
+  but your eyes.) The factory theme leaves the grid in one place on purpose:
+  its red, and `danger` with it, runs darker from 200 to 500, because a red
+  at the grid's tone is salmon. The floors still hold.
+- **The brand is the app's own colour, and nobody picks it.** It is what an
+  action and "now" wear: the chosen day, the button that creates, a link, a
+  focus ring. `--app-brand-solid` (step 500) under `--app-brand-on-solid` is
+  the one strong fill. It is never the colour of a place.
+- **The seven slots are the colours of PLACES, and they are NUMBERED, not
+  named.** A space, a group, a banner and a notebook's card pick among them.
+  They walk the wheel from blue (1 blue, 2 violet, 3 pink, 4 red, 5 orange,
+  6 yellow, 7 green in the factory theme); what each looks like is yours to
+  decide, which is the whole point — a palette that paints slot 6 lilac
+  should not have to keep calling it "yellow". The word a person reads in a
+  menu is a label, not the identity.
 - **Status is its own three families, and they run FIVE steps.** `danger`,
   `warning`, `success` are seeded from red, yellow and green, but they are
   separate tokens: make your `red` sea-green and the error notice stays red —
-  unless you change `danger` too. They are softer than the eight (less
-  chroma), so a warning never passes for a colour someone picked. A status
+  unless you change `danger` too. A status
   colour is ink (300 on a dark ground, 500 on a light one), the wash behind
   it (700/100), or a fill (200 on both grounds: a swipe's square, a priority
   swatch); a notice's glyph on its wash reads `-on-tint`, which for the
   warning leans amber on the light ground. It is never a heading, so it has
-  no ladder. Two marks of a note read these families too, so they never
-  follow the accent: italic text is `success` ink, and inline code is
+  no ladder. Two marks of a note read these families too: italic text is
+  `success` ink, and inline code is
   `danger` ink with its hue turned 15° toward orange (same tone and chroma),
   so changing `danger` moves it too.
-- **Which of the eight is the accent stays the reader's choice** (Settings →
-  Display), never the theme's. A theme says what `blue` *looks like*; the
-  person says whether the app wears blue.
 - **Spacing and radius are the theme's too.** A squarer or roomier Jott is a
   theme, not a fork.
 
@@ -176,10 +179,10 @@ mean the same thing:
 
 | Role | Question it answers | Who carries it | The one form |
 |---|---|---|---|
-| **origin** | where did this come from? | a space (its group's colour wins) | the sidebar's bar, the tab's dot — and, outside the space, **colour alone**: a bar on the card's left edge (`.theme-origin`), strong, no word |
+| **origin** | where did this come from? | a space (its group's colour wins) | the space's icon in the sidebar, the tab's dot — and, outside the space, **colour alone**: a bar on the card's left edge (`.theme-origin`), strong, no word |
 | **subject** | what is it about? | a tag | a **badge** (`.theme-badge`): `#tag` with the text on rung 2 and a soft outline on `-line` — in the colour of the card's space, so it agrees with the bar; neutral where there is no place to take it from (the tag manager) |
 | **surface** | the face of a thing | a note's banner (`-fill`), a folder of notes (`-tint`), a notebook's card (`-solid`) | a fill; the picker previews the step it will paint with |
-| **status** | urgent? wrong? | priority, an overdue date, a notice, a swipe's square | `--app-danger` / `-warning` / `-success` for ink, plus `-fill`, `-tint` and `-on-tint`, read from the theme's own status families — never one of the eight by name |
+| **status** | urgent? wrong? | priority, an overdue date, a notice, a swipe's square | `--app-danger` / `-warning` / `-success` for ink, plus `-fill`, `-tint` and `-on-tint`, read from the theme's own status families — never one of the seven by name |
 
 The rule that holds it together: **a card carries at most one colour of the
 palette, and it is its space's.** Everything else on it is neutral or status.
@@ -203,7 +206,7 @@ things to know:
   the mark and its `-ink`, `-line` and `-tint`, the status roles and their
   `-fill`, `-tint` and `-on-tint`, the hover veil and the popover shadow.
 
-### You do not have to write 91 tokens
+### You do not have to write 95 tokens
 
 `src/styles/themes/make-theme.py` writes a whole theme from a handful of
 colours you like. It reads the HUE of each colour you give and rebuilds that
@@ -212,7 +215,7 @@ even when your pick was a muddy screenshot swatch:
 
 ```
 ./make-theme.py --name midnight --ground "#16151a" \
-    --1 "#0076c3" --4 "#e5484d" --7 "#30a46c" -o midnight.css
+    --brand "#2557e5" --4 "#e5484d" --7 "#30a46c" -o midnight.css
 ```
 
 Any slot you leave out keeps the factory hue. `--check <file>` re-measures an
@@ -257,24 +260,19 @@ ON A DARK GROUND  → ink white; ladder 200→450, base 300, line 500 @45%, tint
 ON A LIGHT GROUND → ink black; ladder 600→350, base 500, line 300 @60%, tint 100
 ```
 
-**`neutral` is the eighth slot, and it reads one step further out.** It is
-the white↔black family, so its ramp runs along the same axis as the app's
-two grounds: taking the same steps as a hue would make its first rung a grey
-instead of white, and its tint the ground itself. Everything else about it is
-ordinary.
-
 ### A mark is one colour; only ink has two halves
 
 `--app-<name>` is the colour as a **mark** — a dot, a pill, a bar, a banner,
 a button's fill — and it is step 300 in every mode and both regions. Nothing
 is read off a mark, so it has no contrast to protect, and a yellow note is
 yellow under any lamp. The ink over any of them is `--app-on-brand`
-(`--app-on-solid` on a card), the dark ground, which clears 7:1 on all eight.
+(`--app-on-solid` on a card), the dark ground, which clears 4.5:1 on all
+seven.
 
 `--app-<name>-ink` is the colour as something **read** — a word, a hairline, a
 focus ring, a caret — and that one still answers the region: the palette's
 step 300 on a dark ground, 500 on a light one. Assign both: a mode that writes
-only the mark leaves every accented word at the mark's contrast, which on a
+only the mark leaves every coloured word at the mark's contrast, which on a
 light ground is 2.2:1.
 
 ---
@@ -283,14 +281,15 @@ light ground is 2.2:1.
 
 ```
 src/styles/
-├── themes/jott.css   THE THEME: the palette (8 families × 7 steps, 3 status
-│                     × 4, the grounds), the spacing and radius scales —
+├── themes/jott.css   THE THEME: the palette (the brand and 7 place colours
+│                     × 7 steps, 3 status × 5, the grounds), the spacing and
+│                     radius scales —
 │                     `--theme-*`, literals only. Written into notebooks.
 ├── modes/*.css       one file per MODE: `--app-*` per region, read from
 │                     the theme's tokens
 ├── roles.css         the shared mode: the roles that are the same in every
-│                     mode, and the two runtime choices (which colour is the
-│                     accent, and whether headings take it)
+│                     mode, and the one runtime choice (whether headings
+│                     take the brand or the ink)
 ├── tokens.css        the app's structural vocabulary — type, layout,
 │                     motion — as `--app-*`; spacing and radius point at
 │                     the theme's
@@ -314,8 +313,7 @@ Two conventions that will bite if you don't know them:
 
 ## Not a theme, but nearby
 
-The mode, the accent colour (any of the eight), the heading colour, the note
-font size and the three font choices are **settings**, not themes: they work
-on top of whichever theme is on, and they are per machine. A theme should
-look right under all three modes and all eight accents — that is what the
-tone grid and the ladder are for.
+The mode, the heading colour, the note font size and the three font choices
+are **settings**, not themes: they work on top of whichever theme is on, and
+they are per machine. A theme should look right under all three modes — that
+is what the tone grid and the ladder are for.

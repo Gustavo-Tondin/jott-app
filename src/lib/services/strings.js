@@ -655,7 +655,7 @@ export const S = {
     n === 1
       ? "1 address pointing off this machine was blocked."
       : `${n} addresses pointing off this machine were blocked.`,
-  accentColor: "Accent colour",
+  notebookColor: "Notebook colour",
   headingColor: "Headings",
   headingColorAccent: "Accent",
   headingColorAccentHint: "Titles take the colour of the place they live in.",
@@ -1203,7 +1203,6 @@ export const S = {
       5: "Orange",
       6: "Yellow",
       7: "Green",
-      neutral: "Neutral",
     })[slot] ?? slot,
   bannerImage: "Choose image…",
   removeBanner: "Remove banner",

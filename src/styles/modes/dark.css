@@ -1,12 +1,6 @@
-/* modes/dark.css — everything dark. Both regions share ink and the eight
- * accents from the light end of the grid (base 300, tint 700); the two
+/* modes/dark.css — everything dark. Both regions share ink and the colours from the light end of the grid (base 300, tint 700); the two
  * neutrals swap order: the chrome is the LIGHTER (black-tint), the canvas the
  * deeper black — the opposite of the factory mode. Rules: modes/jott.css. */
-
-[data-mode="dark"] {
-  --app-canvas-ground: var(--theme-color-black);
-  --app-canvas-ink: var(--theme-color-white);
-}
 
 /* ---- the two neutrals, in opposite order ------------------------------- */
 [data-mode="dark"] [data-region="chrome"] {
@@ -27,7 +21,7 @@
 [data-mode="dark"] [data-region="chrome"],
 [data-mode="dark"] [data-region="canvas"] {
   --app-ink: var(--theme-color-white);
-  --app-ink-muted: color-mix(in srgb, var(--theme-color-white) 55%, transparent);
+  --app-ink-muted: color-mix(in srgb, var(--theme-color-white) 60%, transparent);
   --app-on-brand: var(--theme-color-black);
   --app-hover: color-mix(in srgb, var(--theme-color-white) 8%, transparent);
   --app-shadow-popover: 0 0.375rem 1.25rem
@@ -37,49 +31,20 @@
   --app-shadow-raised: 0 0.125rem 0.5rem
     color-mix(in srgb, var(--theme-color-white) 10%, transparent);
 
-  --app-6-1: var(--theme-color-6-200);
-  --app-6-2: color-mix(in oklab, var(--theme-color-6-200), var(--theme-color-6-300));
-  --app-6-3: var(--theme-color-6-300);
-  --app-6-4: color-mix(in oklab, var(--theme-color-6-300), var(--theme-color-6-400));
-  --app-6-5: var(--theme-color-6-400);
-  --app-6-6: color-mix(in oklab, var(--theme-color-6-400), var(--theme-color-6-500));
-  --app-6: var(--theme-color-6-300);
-  --app-6-ink: var(--theme-color-6-300);
-  --app-6-line: color-mix(in srgb, var(--theme-color-6-500) 45%, transparent);
-  --app-6-tint: var(--theme-color-6-700);
-
-  --app-5-1: var(--theme-color-5-200);
-  --app-5-2: color-mix(in oklab, var(--theme-color-5-200), var(--theme-color-5-300));
-  --app-5-3: var(--theme-color-5-300);
-  --app-5-4: color-mix(in oklab, var(--theme-color-5-300), var(--theme-color-5-400));
-  --app-5-5: var(--theme-color-5-400);
-  --app-5-6: color-mix(in oklab, var(--theme-color-5-400), var(--theme-color-5-500));
-  --app-5: var(--theme-color-5-300);
-  --app-5-ink: var(--theme-color-5-300);
-  --app-5-line: color-mix(in srgb, var(--theme-color-5-500) 45%, transparent);
-  --app-5-tint: var(--theme-color-5-700);
-
-  --app-3-1: var(--theme-color-3-200);
-  --app-3-2: color-mix(in oklab, var(--theme-color-3-200), var(--theme-color-3-300));
-  --app-3-3: var(--theme-color-3-300);
-  --app-3-4: color-mix(in oklab, var(--theme-color-3-300), var(--theme-color-3-400));
-  --app-3-5: var(--theme-color-3-400);
-  --app-3-6: color-mix(in oklab, var(--theme-color-3-400), var(--theme-color-3-500));
-  --app-3: var(--theme-color-3-300);
-  --app-3-ink: var(--theme-color-3-300);
-  --app-3-line: color-mix(in srgb, var(--theme-color-3-500) 45%, transparent);
-  --app-3-tint: var(--theme-color-3-700);
-
-  --app-7-1: var(--theme-color-7-200);
-  --app-7-2: color-mix(in oklab, var(--theme-color-7-200), var(--theme-color-7-300));
-  --app-7-3: var(--theme-color-7-300);
-  --app-7-4: color-mix(in oklab, var(--theme-color-7-300), var(--theme-color-7-400));
-  --app-7-5: var(--theme-color-7-400);
-  --app-7-6: color-mix(in oklab, var(--theme-color-7-400), var(--theme-color-7-500));
-  --app-7: var(--theme-color-7-300);
-  --app-7-ink: var(--theme-color-7-300);
-  --app-7-line: color-mix(in srgb, var(--theme-color-7-500) 45%, transparent);
-  --app-7-tint: var(--theme-color-7-700);
+  /* The app blue. `-solid` is the one strong fill (the chosen day, the FAB,
+     the day's progress) and carries `-on-solid`; `--app-brand` is the mark. */
+  --app-brand-1: var(--theme-color-brand-200);
+  --app-brand-2: color-mix(in oklab, var(--theme-color-brand-200), var(--theme-color-brand-300));
+  --app-brand-3: var(--theme-color-brand-300);
+  --app-brand-4: color-mix(in oklab, var(--theme-color-brand-300), var(--theme-color-brand-400));
+  --app-brand-5: var(--theme-color-brand-400);
+  --app-brand-6: color-mix(in oklab, var(--theme-color-brand-400), var(--theme-color-brand-500));
+  --app-brand: var(--theme-color-brand-300);
+  --app-brand-ink: var(--theme-color-brand-300);
+  --app-brand-weak: var(--theme-color-brand-700);
+  --app-brand-outline: color-mix(in srgb, var(--theme-color-brand-500) 45%, transparent);
+  --app-brand-solid: var(--theme-color-brand-500);
+  --app-brand-on-solid: var(--theme-color-white-tint);
 
   --app-1-1: var(--theme-color-1-200);
   --app-1-2: color-mix(in oklab, var(--theme-color-1-200), var(--theme-color-1-300));
@@ -92,17 +57,6 @@
   --app-1-line: color-mix(in srgb, var(--theme-color-1-500) 45%, transparent);
   --app-1-tint: var(--theme-color-1-700);
 
-  --app-4-1: var(--theme-color-4-200);
-  --app-4-2: color-mix(in oklab, var(--theme-color-4-200), var(--theme-color-4-300));
-  --app-4-3: var(--theme-color-4-300);
-  --app-4-4: color-mix(in oklab, var(--theme-color-4-300), var(--theme-color-4-400));
-  --app-4-5: var(--theme-color-4-400);
-  --app-4-6: color-mix(in oklab, var(--theme-color-4-400), var(--theme-color-4-500));
-  --app-4: var(--theme-color-4-300);
-  --app-4-ink: var(--theme-color-4-300);
-  --app-4-line: color-mix(in srgb, var(--theme-color-4-500) 45%, transparent);
-  --app-4-tint: var(--theme-color-4-700);
-
   --app-2-1: var(--theme-color-2-200);
   --app-2-2: color-mix(in oklab, var(--theme-color-2-200), var(--theme-color-2-300));
   --app-2-3: var(--theme-color-2-300);
@@ -114,16 +68,60 @@
   --app-2-line: color-mix(in srgb, var(--theme-color-2-500) 45%, transparent);
   --app-2-tint: var(--theme-color-2-700);
 
-  --app-neutral-1: var(--theme-color-neutral-100);
-  --app-neutral-2: color-mix(in oklab, var(--theme-color-neutral-100), var(--theme-color-neutral-200));
-  --app-neutral-3: var(--theme-color-neutral-200);
-  --app-neutral-4: color-mix(in oklab, var(--theme-color-neutral-200), var(--theme-color-neutral-300));
-  --app-neutral-5: var(--theme-color-neutral-300);
-  --app-neutral-6: color-mix(in oklab, var(--theme-color-neutral-300), var(--theme-color-neutral-400));
-  --app-neutral: var(--theme-color-neutral-300);
-  --app-neutral-ink: var(--theme-color-neutral-200);
-  --app-neutral-line: color-mix(in srgb, var(--theme-color-neutral-500) 45%, transparent);
-  --app-neutral-tint: var(--theme-color-neutral-600);
+  --app-3-1: var(--theme-color-3-200);
+  --app-3-2: color-mix(in oklab, var(--theme-color-3-200), var(--theme-color-3-300));
+  --app-3-3: var(--theme-color-3-300);
+  --app-3-4: color-mix(in oklab, var(--theme-color-3-300), var(--theme-color-3-400));
+  --app-3-5: var(--theme-color-3-400);
+  --app-3-6: color-mix(in oklab, var(--theme-color-3-400), var(--theme-color-3-500));
+  --app-3: var(--theme-color-3-300);
+  --app-3-ink: var(--theme-color-3-300);
+  --app-3-line: color-mix(in srgb, var(--theme-color-3-500) 45%, transparent);
+  --app-3-tint: var(--theme-color-3-700);
+
+  --app-4-1: var(--theme-color-4-200);
+  --app-4-2: color-mix(in oklab, var(--theme-color-4-200), var(--theme-color-4-300));
+  --app-4-3: var(--theme-color-4-300);
+  --app-4-4: color-mix(in oklab, var(--theme-color-4-300), var(--theme-color-4-400));
+  --app-4-5: var(--theme-color-4-400);
+  --app-4-6: color-mix(in oklab, var(--theme-color-4-400), var(--theme-color-4-500));
+  --app-4: var(--theme-color-4-300);
+  --app-4-ink: var(--theme-color-4-300);
+  --app-4-line: color-mix(in srgb, var(--theme-color-4-500) 45%, transparent);
+  --app-4-tint: var(--theme-color-4-700);
+
+  --app-5-1: var(--theme-color-5-200);
+  --app-5-2: color-mix(in oklab, var(--theme-color-5-200), var(--theme-color-5-300));
+  --app-5-3: var(--theme-color-5-300);
+  --app-5-4: color-mix(in oklab, var(--theme-color-5-300), var(--theme-color-5-400));
+  --app-5-5: var(--theme-color-5-400);
+  --app-5-6: color-mix(in oklab, var(--theme-color-5-400), var(--theme-color-5-500));
+  --app-5: var(--theme-color-5-300);
+  --app-5-ink: var(--theme-color-5-300);
+  --app-5-line: color-mix(in srgb, var(--theme-color-5-500) 45%, transparent);
+  --app-5-tint: var(--theme-color-5-700);
+
+  --app-6-1: var(--theme-color-6-200);
+  --app-6-2: color-mix(in oklab, var(--theme-color-6-200), var(--theme-color-6-300));
+  --app-6-3: var(--theme-color-6-300);
+  --app-6-4: color-mix(in oklab, var(--theme-color-6-300), var(--theme-color-6-400));
+  --app-6-5: var(--theme-color-6-400);
+  --app-6-6: color-mix(in oklab, var(--theme-color-6-400), var(--theme-color-6-500));
+  --app-6: var(--theme-color-6-300);
+  --app-6-ink: var(--theme-color-6-300);
+  --app-6-line: color-mix(in srgb, var(--theme-color-6-500) 45%, transparent);
+  --app-6-tint: var(--theme-color-6-700);
+
+  --app-7-1: var(--theme-color-7-200);
+  --app-7-2: color-mix(in oklab, var(--theme-color-7-200), var(--theme-color-7-300));
+  --app-7-3: var(--theme-color-7-300);
+  --app-7-4: color-mix(in oklab, var(--theme-color-7-300), var(--theme-color-7-400));
+  --app-7-5: var(--theme-color-7-400);
+  --app-7-6: color-mix(in oklab, var(--theme-color-7-400), var(--theme-color-7-500));
+  --app-7: var(--theme-color-7-300);
+  --app-7-ink: var(--theme-color-7-300);
+  --app-7-line: color-mix(in srgb, var(--theme-color-7-500) 45%, transparent);
+  --app-7-tint: var(--theme-color-7-700);
 
   --app-danger: var(--theme-color-danger-300);
   --app-warning: var(--theme-color-warning-300);

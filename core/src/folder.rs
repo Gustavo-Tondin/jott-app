@@ -84,7 +84,7 @@ first line of the text:
   <!--banner: 6-->
   <!--banner: assets/sunset.jpg-->
 
-A colour is one of Jott's eight slots — 1 to 7, or neutral; the theme
+A colour is one of Jott's seven slots, 1 to 7; the theme
 decides what each one looks like. An image is an address in the assets
 folder, below.
 Every Markdown reader hides that comment, so the note stays a normal note
