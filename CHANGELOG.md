@@ -26,6 +26,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 - The task panel is part of the page, with a larger title that wraps, subtasks as lines and each field on one line; "Complete date" is now "Due".
 - Tags are drawn in the app's blue on cards, in the task panel and in a note's head.
 - On the narrow sidebar a folded group stays as a short bar with an arrow that opens it, and an open group folds by its bar.
+- The date picker marks the chosen day with the same blue disc as the Home's week.
 - A few icons were refreshed: a simpler house for Home, a new settings gear, and bolder ⋯, ⋮ and folding arrows.
 
 ### Fixed

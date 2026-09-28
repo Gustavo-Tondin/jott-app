@@ -73,14 +73,15 @@
   .date-picker__day--empty {
     cursor: default;
   }
-  /* Today is outlined; the chosen day is filled with the brand. */
+  /* Today is outlined; the chosen day is the brand's solid, the same disc
+     the Home's week draws. */
   .date-picker__day--today {
     box-shadow: inset 0 0 0 0.0625rem var(--app-brand-outline);
   }
   .date-picker__day--selected,
   .date-picker__day--selected:hover {
-    background: var(--app-brand);
-    color: var(--app-on-brand);
+    background: var(--app-brand-solid);
+    color: var(--app-brand-on-solid);
     font-weight: var(--app-weight-semibold);
   }
 

@@ -73,6 +73,13 @@
     display: flex;
     gap: var(--app-space-2);
   }
+  /* The header's buttons are a 32px square around an 18px glyph. */
+  .page-header .page-nav__arrow,
+  .page-header .page-menu__toggle {
+    inline-size: 2rem;
+    block-size: 2rem;
+    padding: 0;
+  }
   /* An arrow — or a ••• — with nowhere to go stays visible but plainly inert. */
   .page-header .page-nav__arrow:disabled,
   .page-header .page-menu__toggle:disabled {
