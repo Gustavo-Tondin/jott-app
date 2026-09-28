@@ -170,6 +170,13 @@ describe("TaskRow — the age stamp", () => {
     expect(container.querySelector(".task-row__meta")).toBe(null);
   });
 
+  test("a done task carries no stamp", () => {
+    const { container } = row({
+      task: { id: "a1", text: "Fix website", done: true, tags: [], subtasks: [], created: "2026-08-16", age: { days: 12, band: "stale" } },
+    });
+    expect(container.querySelector(".task-row__field--age")).toBe(null);
+  });
+
   test("a task the core could not date says nothing", () => {
     const { container } = row();
     expect(container.querySelector(".task-row__field--age")).toBe(null);

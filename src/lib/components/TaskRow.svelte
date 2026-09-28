@@ -163,9 +163,10 @@
   );
 
   // How old the task is (spec 3.6): stamped by the core; only whether it is
-  // drawn is decided here, on the time axis's one switch.
+  // drawn is decided here, on the time axis's one switch. A done task has
+  // stopped ageing, so it carries no stamp.
   let stamp = $derived(
-    f("time")
+    f("time") && !task.done
       ? ageStamp(task.age, { since: task.created, dateFormat, title: S.createdOn })
       : null,
   );
