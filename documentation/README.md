@@ -8,6 +8,7 @@ something is planned but not built, it says so.
 | [`file-format.md`](file-format.md) | you want to read or write a Jott notebook with your own tools, or you're just curious what the app writes into your files |
 | [`contributing.md`](contributing.md) | you want to send a pull request |
 | [`architecture.md`](architecture.md) | you want to change the code and need to know what lives where, and why |
+| [`configuration.md`](configuration.md) | you want to know every option Jott keeps, which file it lives in and what it is by default |
 | [`theming.md`](theming.md) | you want to make Jott look different — the smallest useful contribution, and it needs no Rust |
 | [`plugins.md`](plugins.md) | you want to extend Jott and are wondering what the extension story is |
 | [`building.md`](building.md) | you want to build the app yourself, for any of the three platforms |

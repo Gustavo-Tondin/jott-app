@@ -386,7 +386,8 @@ order you dragged things into.
   a watcher picks the file up, no restart.
 
   If you're writing a tool against a notebook, you can ignore this file: it
-  holds preferences, not your content.
+  holds preferences, not your content. Every key is listed in
+  [`configuration.md`](configuration.md).
 
 - **`daily-state.json`** and **`plan.json`** — the day. Both hold
   **references** (`{ "path": "jott.tasks/task-list.md", "id": "g7h8i9" }`),
@@ -474,7 +475,7 @@ order you dragged things into.
 **Not in the notebook:** anything that answers to a *machine* rather than a
 person — panel widths, zoom, the last screen, the theme this installation
 chose — lives in the OS config folder, so your phone doesn't inherit your
-desktop's layout.
+desktop's layout. Its keys are in [`configuration.md`](configuration.md) too.
 
 ---
 
