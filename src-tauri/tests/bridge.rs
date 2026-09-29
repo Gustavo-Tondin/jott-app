@@ -1414,6 +1414,20 @@ fn the_tab_strip_answers_to_the_machine_and_reaches_the_layout() {
 }
 
 #[test]
+fn simple_tasks_answer_to_the_machine_and_reach_the_layout() {
+    let (_lock, app, dir) = app_with_notebook();
+    assert_eq!(ok(&app, "notebook_settings", json!({}))["simpleTasks"], json!(false));
+
+    ok(&app, "set_machine_display", json!({ "display": { "simpleTasks": true } }));
+
+    assert_eq!(ok(&app, "notebook_settings", json!({}))["simpleTasks"], json!(true));
+    let snap = ok(&app, "notebook_snapshot", json!({}));
+    assert_eq!(snap["info"]["layout"]["simpleTasks"], json!(true));
+    let config = std::fs::read_to_string(dir.path().join(".jott/config.json")).unwrap_or_default();
+    assert!(!config.contains("\"simpleTasks\": true"), "the notebook is not told: {config}");
+}
+
+#[test]
 fn a_partial_settings_payload_keeps_what_it_did_not_mention() {
     // An older frontend, or a screen that only edits one thing, must not wipe
     // the preferences it does not know about.

@@ -129,10 +129,11 @@
     45% {
       max-block-size: 5rem;
     }
+    /* No `padding-block` here: the card's own is the end, whichever row
+       style is worn. */
     to {
       opacity: 1;
       max-block-size: 8rem;
-      padding-block: var(--app-space-12);
       translate: 0 0;
     }
   }
@@ -343,5 +344,28 @@
   /* An empty slot must not still pay the row's gap. */
   .task-row__actions:empty {
     display: none;
+  }
+
+  /* SIMPLE ROWS (Settings › Display, `data-tasks` on the root): a list, not
+     a stack of cards — no ground, no frame, a hairline under each, the box
+     and the title alone. The fields stay in the task's panel, the pin in the
+     ring; an action in the corner (a completed row's ×) stays. */
+  :root[data-tasks="simple"] .task-row {
+    padding: var(--app-space-8) var(--app-space-4);
+    background: transparent;
+    border: 0;
+    border-block-end: 0.0625rem solid var(--app-line);
+    border-radius: 0;
+  }
+  :root[data-tasks="simple"] .task-row__meta,
+  :root[data-tasks="simple"] .task-row__bookmark,
+  :root[data-tasks="simple"] .task-row__field--age,
+  :root[data-tasks="simple"] .task-row__aside:not(:has(.task-row__aside-top > :not(.task-row__bookmark))) {
+    display: none;
+  }
+  /* Without a frame, selected and marked speak through the ground. */
+  :root[data-tasks="simple"] .task-row--selected,
+  :root[data-tasks="simple"] .task-row--picked {
+    background: var(--app-hover);
   }
 }

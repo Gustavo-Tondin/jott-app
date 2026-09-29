@@ -11,6 +11,7 @@
     S.noteFontSizeLabel,
     S.cardHeightLabel,
     S.noteLayout,
+    S.simpleTasks,
     S.interfaceFontLabel,
     S.noteFontLabel,
     S.monoFontLabel,
@@ -457,6 +458,22 @@
       <option value="">{S.gridView}</option>
       <option value="tree">{S.treeView}</option>
     </select>
+  </label>
+
+  <!-- How a task row reads: a card with its fields, or a plain line with the
+       title alone. Display, like the board above: density answers to a screen. -->
+  <label class="settings__row">
+    <span class="settings__label">
+      {S.simpleTasks}
+      <HelpTip label={S.simpleTasks} text={S.simpleTasksHint} />
+    </span>
+    <input
+      class="theme-checkbox"
+      type="checkbox"
+      bind:checked={form.simpleTasks}
+      aria-label={S.simpleTasks}
+      onchange={(e) => putDisplay({ simpleTasks: e.currentTarget.checked })}
+    />
   </label>
 
   <label class="settings__row">

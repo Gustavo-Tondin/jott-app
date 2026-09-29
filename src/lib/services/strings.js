@@ -696,6 +696,9 @@ export const S = {
   tabStrip: "Show the tab strip",
   tabStripHint:
     "A row of tabs over the window. Without it, click a page's name to see your tabs.",
+  simpleTasks: "Simple task rows",
+  simpleTasksHint:
+    "A line under each task and the title alone. The task's details stay in its panel.",
   quickNoteFolder: "Quick note goes to",
 
   // The function pages. One subtitle per group of rows.

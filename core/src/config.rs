@@ -209,6 +209,9 @@ pub struct Config {
     /// Desktop only: the tab strip over the window. Off by default: the page
     /// header is the window's bar, and the page's name opens the tabs.
     pub tab_strip: bool,
+    /// Task rows drawn as a plain list: a hairline under each, no card, the
+    /// title alone. Off by default; the fields stay in the task's panel.
+    pub simple_tasks: bool,
     /// Where the Home's quick capture writes, relative to the notes space;
     /// empty is the space's root, where loose notes live.
     pub quick_note_folder: String,
@@ -306,6 +309,7 @@ impl Default for Config {
             shortcuts: Map::new(),
             close_inspector_on_click_away: false,
             tab_strip: false,
+            simple_tasks: false,
             quick_note_folder: String::new(),
             quick_task_list: String::new(),
             tasks_show_all: false,
@@ -522,6 +526,7 @@ impl Config {
                 defaults.close_inspector_on_click_away,
             ),
             tab_strip: flag(&raw, "tabStrip", defaults.tab_strip),
+            simple_tasks: flag(&raw, "simpleTasks", defaults.simple_tasks),
             quick_note_folder: string(&raw, "quickNoteFolder")
                 .unwrap_or(defaults.quick_note_folder),
             quick_task_list: string(&raw, "quickTaskList").unwrap_or(defaults.quick_task_list),
@@ -621,6 +626,7 @@ impl Config {
                 Value::from(self.close_inspector_on_click_away),
             ),
             ("tabStrip", Value::from(self.tab_strip)),
+            ("simpleTasks", Value::from(self.simple_tasks)),
             ("hyphenateNotes", Value::from(self.hyphenate_notes)),
             ("checkSpelling", Value::from(self.check_spelling)),
             ("quickNoteFolder", Value::from(self.quick_note_folder.clone())),

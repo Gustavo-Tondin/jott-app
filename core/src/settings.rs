@@ -46,6 +46,7 @@ pub struct DisplayPrefs {
     pub restore_last_screen: Option<bool>,
     pub close_inspector_on_click_away: Option<bool>,
     pub tab_strip: Option<bool>,
+    pub simple_tasks: Option<bool>,
 }
 
 /// A font choice on its way in: kept when it is a name that can be written
@@ -87,6 +88,7 @@ impl DisplayPrefs {
             patch.close_inspector_on_click_away,
         );
         take(&mut self.tab_strip, patch.tab_strip);
+        take(&mut self.simple_tasks, patch.simple_tasks);
     }
 }
 
@@ -153,6 +155,7 @@ pub struct Display {
     pub restore_last_screen: bool,
     pub close_inspector_on_click_away: bool,
     pub tab_strip: bool,
+    pub simple_tasks: bool,
 }
 
 impl Display {
@@ -210,6 +213,7 @@ impl Display {
                 .close_inspector_on_click_away
                 .unwrap_or(config.close_inspector_on_click_away),
             tab_strip: machine.tab_strip.unwrap_or(config.tab_strip),
+            simple_tasks: machine.simple_tasks.unwrap_or(config.simple_tasks),
         }
     }
 }
@@ -270,6 +274,8 @@ pub struct NotebookSettings {
     pub format_bar_side: Option<String>,
     pub close_inspector_on_click_away: Option<bool>,
     pub tab_strip: Option<bool>,
+    /// Task rows as a plain list: a hairline, no card, the title alone.
+    pub simple_tasks: Option<bool>,
     /// The languages notes are written in, in order (`Config::languages`),
     /// and the two things that read them: hyphenation and the spell check.
     pub languages: Option<Vec<String>>,
@@ -330,6 +336,7 @@ impl NotebookSettings {
             format_bar_side: Some(display.format_bar_side.clone()),
             close_inspector_on_click_away: Some(display.close_inspector_on_click_away),
             tab_strip: Some(display.tab_strip),
+            simple_tasks: Some(display.simple_tasks),
             languages: Some(config.languages.clone()),
             hyphenate_notes: Some(config.hyphenate_notes),
             check_spelling: Some(config.check_spelling),
@@ -451,6 +458,9 @@ impl NotebookSettings {
         }
         if let Some(v) = self.tab_strip {
             config.tab_strip = v;
+        }
+        if let Some(v) = self.simple_tasks {
+            config.simple_tasks = v;
         }
         if let Some(v) = &self.languages {
             config.languages = crate::writing::tidy(v.iter().map(String::as_str));

@@ -8,6 +8,10 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 ## v0.59.2
 
+### New
+
+- Settings → Display → "Simple task rows" draws tasks as a plain list: a line under each task and the title alone.
+
 ### Improved
 
 - New colours: a warmer paper and ink, quieter colours for spaces, and a red, an orange and a yellow that read as themselves.

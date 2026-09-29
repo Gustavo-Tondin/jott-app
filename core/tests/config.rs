@@ -252,6 +252,16 @@ fn the_tab_strip_is_off_until_asked_for_and_the_choice_round_trips() {
 }
 
 #[test]
+fn simple_tasks_are_off_until_asked_for_and_the_choice_round_trips() {
+    let mut config = Config::default();
+    assert!(!config.simple_tasks, "cards by default");
+    config.simple_tasks = true;
+    assert!(Config::parse(&config.render()).simple_tasks);
+    let broken = Config::parse(r#"{ "schemaVersion": 1, "simpleTasks": "yes" }"#);
+    assert!(!broken.simple_tasks);
+}
+
+#[test]
 fn the_default_note_layout_is_absent_until_chosen_and_round_trips() {
     let mut config = Config::default();
     assert_eq!(config.note_layout, "", "empty means what the app ships as");

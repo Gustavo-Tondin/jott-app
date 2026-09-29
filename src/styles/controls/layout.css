@@ -29,6 +29,10 @@
     --task-list-gap: var(--app-space-4);
     gap: var(--task-list-gap);
   }
+  /* Simple rows (task-row.css) touch: the hairline under each is the gap. */
+  :root[data-tasks="simple"] .theme-task-list {
+    --task-list-gap: 0;
+  }
 
   /* The hairline under the pinned cards: a list item of its own, so it rides
      along with the cards it separates. */

@@ -870,6 +870,7 @@
       // Hyphenation is a fact about the whole document (the engine needs the
       // page's language), so it is an attribute like the rest — absent is off.
       hyphens: layout.hyphenateNotes ? "on" : null,
+      tasks: layout.simpleTasks ? "simple" : null,
     }),
   );
 

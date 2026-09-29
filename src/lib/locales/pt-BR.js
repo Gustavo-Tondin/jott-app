@@ -985,6 +985,11 @@ export default {
     "A row of tabs over the window. Without it, click a page's name to see your tabs.",
     "Uma fileira de abas no topo da janela. Sem ela, clique no nome da página para ver suas abas.",
   ],
+  simpleTasks: ["Simple task rows", "Tarefas simplificadas"],
+  simpleTasksHint: [
+    "A line under each task and the title alone. The task's details stay in its panel.",
+    "Uma linha sob cada tarefa e só o título. Os detalhes continuam no painel da tarefa.",
+  ],
   quickNoteFolder: ["Quick note goes to", "A nota rápida vai para"],
 
   // The function pages
