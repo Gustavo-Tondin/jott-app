@@ -282,7 +282,7 @@
 
 /* ---- lists ----
    A marker is structure, not a word: it reads one step back from the text so
-   the eye tells the two apart down the margin. Muted ink, never the accent —
+   the eye tells the two apart down the margin. Muted ink, never the brand —
    a list is not a coloured thing. */
 .editor .cm-md-bullet {
   color: var(--app-ink-muted);

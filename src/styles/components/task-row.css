@@ -137,7 +137,7 @@
     }
   }
 
-  /* JOINING THE DAY, on the card that stays where it is: a wash of the accent
+  /* JOINING THE DAY, on the card that stays where it is: a wash of the brand
      — the colour of the act — flooding and draining away. The sun popping in
      the meta row is the same news said small; on a swipe, where the eye is on
      the card sliding home, the small one alone goes unseen. */
@@ -266,7 +266,7 @@
     color: var(--app-ink-muted);
   }
   /* The sun marks a card that is in a day, and LIGHTS UP the moment it joins
-     one: a pop in the accent — the colour of the act — settling into the meta
+     one: a pop in the brand — the colour of the act — settling into the meta
      row's own ink. It answers the button, the swipe and the inspector alike,
      because it plays on the state, not on the gesture. The wrapper is a
      `.task-row__field`, so it has the box a transform needs. */

@@ -8,7 +8,8 @@
    a notebook's theme leaves out still has a value. No `@layer`: the notebook
    copy is injected plain, and this file stays byte-identical to it. */
 
-/* TONE GRID — seven steps (CIE L* targets); status runs five of them:
+/* TONE GRID: seven steps (CIE L* targets). The brand runs all seven; the
+   seven places run four (100 · 300 · 500 · 700) and status five:
      100 → 92  quiet fill on a LIGHT ground
      200 → 80  emphasis INK on a DARK ground (H1, H2)
      300 → 70  EVERY MARK, on both grounds; and ink on a DARK one (H3, icons)
@@ -48,59 +49,38 @@
      6 yellow · 7 green. As a MARK every one is step 300 on both grounds; as
      INK it has a light half and a dark half. */
   --theme-color-1-100: #d1edff;
-  --theme-color-1-200: #93d0f4;
   --theme-color-1-300: #65b7e4;
-  --theme-color-1-400: #3697c8;
   --theme-color-1-500: #0577a6;
-  --theme-color-1-600: #00587d;
   --theme-color-1-700: #0d3043;
 
   --theme-color-2-100: #e6e6fe;
-  --theme-color-2-200: #c1c1fb;
   --theme-color-2-300: #a5a4ed;
-  --theme-color-2-400: #8683d1;
   --theme-color-2-500: #6964af;
-  --theme-color-2-600: #4d4985;
   --theme-color-2-700: #2a2946;
 
   --theme-color-3-100: #ffe0eb;
-  --theme-color-3-200: #f5b5cc;
   --theme-color-3-300: #e494b2;
-  --theme-color-3-400: #c77193;
   --theme-color-3-500: #a45274;
-  --theme-color-3-600: #7c3a56;
   --theme-color-3-700: #42222f;
 
   --theme-color-4-100: #ffdfdd;
-  --theme-color-4-200: #f7a7a3;
   --theme-color-4-300: #e06d6a;
-  --theme-color-4-400: #c74e4e;
   --theme-color-4-500: #ab3437;
-  --theme-color-4-600: #812b2c;
   --theme-color-4-700: #461f1e;
 
   --theme-color-5-100: #ffe2cc;
-  --theme-color-5-200: #f7b889;
   --theme-color-5-300: #e99653;
-  --theme-color-5-400: #ca7322;
   --theme-color-5-500: #a15708;
-  --theme-color-5-600: #794108;
   --theme-color-5-700: #41250e;
 
   --theme-color-6-100: #fbe6b3;
-  --theme-color-6-200: #e6c164;
   --theme-color-6-300: #cea532;
-  --theme-color-6-400: #ac8501;
   --theme-color-6-500: #876800;
-  --theme-color-6-600: #644c00;
   --theme-color-6-700: #382a05;
 
   --theme-color-7-100: #cdf0de;
-  --theme-color-7-200: #92d4b5;
   --theme-color-7-300: #63bc95;
-  --theme-color-7-400: #329d74;
   --theme-color-7-500: #037d57;
-  --theme-color-7-600: #015c3f;
   --theme-color-7-700: #0c3223;
 
   /* STATUS — danger, warning, success: families of their OWN, seeded from

@@ -34,12 +34,12 @@ pub const FACTORY_NAME: &str = "jott";
 /// palette means moving this number into `RETIRED_FACTORY` and writing the
 /// new one here.
 #[cfg(test)]
-const CURRENT_FACTORY: u64 = 0x707a_8975_fd5c_ec7c;
+const CURRENT_FACTORY: u64 = 0x93f2_bddb_ab82_f624;
 
 /// Every factory palette an older build wrote into a notebook. A copy that is
 /// still one of these, byte for byte, was never edited: it is a stale default,
 /// not the reader's work, and `ensure_default` replaces it.
-const RETIRED_FACTORY: [u64; 8] = [
+const RETIRED_FACTORY: [u64; 10] = [
     0x3d65_c241_7128_3432,
     0x1c21_638d_a443_ad61,
     0xa6a8_78e9_de12_8f84,
@@ -48,6 +48,8 @@ const RETIRED_FACTORY: [u64; 8] = [
     0x0bf7_119f_46de_f942,
     0x81d7_74f5_b6d1_55f9,
     0x6537_5cfb_a2bc_abf4,
+    0x707a_8975_fd5c_ec7c,
+    0xb965_e165_f208_d44e,
 ];
 
 /// FNV-1a, 64 bits: a fingerprint that is the same on every machine and in

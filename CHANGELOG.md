@@ -24,6 +24,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 - Checkboxes are round, and what is ticked, active or primary is drawn in ink instead of a colour.
 - The sidebar shows Home, Tasks and Notes as three tiles, a space wears its colour on its icon only, and a group is a name with a coloured bar.
 - A notebook whose copy of the palette (`.jott/themes/jott.css`) was never edited gets the new colours by itself; an edited copy is left as it is.
+- A theme writes four steps for each of the seven colours (100, 300, 500 and 700), the ones the app draws.
 - Notes now live directly in their space's folder and no longer go into an `Inbox/` subfolder.
 - The desktop window opens without the tab strip: the page's name opens your tabs in a panel, and Settings → Display → "Show the tab strip" brings the strip back.
 - On the phone, tapping a screen's name opens your tabs; "Hide the top bar" is gone, and the top bar no longer has a forward arrow.
@@ -37,6 +38,10 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 - The new-task bar and the sync banners now name the space instead of "Inbox".
 - A task card's age lines up with the card's end again.
+- In the task panel, the calendar of a date shows all seven days of the week again.
+- The chosen day of a calendar stays blue under the pointer.
+- In Settings, the hint of Headings says what it does: titles take the app's colour.
+- The name of a note inside a folder card uses the card's whole width.
 
 ## v0.59.1
 

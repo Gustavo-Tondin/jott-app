@@ -96,7 +96,7 @@
 .editor .editor-search__option:hover {
   background: var(--app-hover);
 }
-/* The match the cursor is on wears the accent, the others its tint. */
+/* The match the cursor is on wears the brand, the others its tint. */
 .editor .cm-searchMatch {
   background: var(--app-brand-weak);
 }

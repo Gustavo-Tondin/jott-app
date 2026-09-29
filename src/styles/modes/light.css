@@ -44,81 +44,32 @@
   --app-brand-solid: var(--theme-color-brand-500);
   --app-brand-on-solid: var(--theme-color-white-tint);
 
-  --app-1-1: var(--theme-color-1-600);
-  --app-1-2: color-mix(in oklab, var(--theme-color-1-600), var(--theme-color-1-500));
-  --app-1-3: var(--theme-color-1-500);
-  --app-1-4: color-mix(in oklab, var(--theme-color-1-500), var(--theme-color-1-400));
-  --app-1-5: var(--theme-color-1-400);
-  --app-1-6: color-mix(in oklab, var(--theme-color-1-400), var(--theme-color-1-300));
   --app-1: var(--theme-color-1-300);
   --app-1-ink: var(--theme-color-1-500);
-  --app-1-line: color-mix(in srgb, var(--theme-color-1-300) 60%, transparent);
   --app-1-tint: var(--theme-color-1-100);
 
-  --app-2-1: var(--theme-color-2-600);
-  --app-2-2: color-mix(in oklab, var(--theme-color-2-600), var(--theme-color-2-500));
-  --app-2-3: var(--theme-color-2-500);
-  --app-2-4: color-mix(in oklab, var(--theme-color-2-500), var(--theme-color-2-400));
-  --app-2-5: var(--theme-color-2-400);
-  --app-2-6: color-mix(in oklab, var(--theme-color-2-400), var(--theme-color-2-300));
   --app-2: var(--theme-color-2-300);
   --app-2-ink: var(--theme-color-2-500);
-  --app-2-line: color-mix(in srgb, var(--theme-color-2-300) 60%, transparent);
   --app-2-tint: var(--theme-color-2-100);
 
-  --app-3-1: var(--theme-color-3-600);
-  --app-3-2: color-mix(in oklab, var(--theme-color-3-600), var(--theme-color-3-500));
-  --app-3-3: var(--theme-color-3-500);
-  --app-3-4: color-mix(in oklab, var(--theme-color-3-500), var(--theme-color-3-400));
-  --app-3-5: var(--theme-color-3-400);
-  --app-3-6: color-mix(in oklab, var(--theme-color-3-400), var(--theme-color-3-300));
   --app-3: var(--theme-color-3-300);
   --app-3-ink: var(--theme-color-3-500);
-  --app-3-line: color-mix(in srgb, var(--theme-color-3-300) 60%, transparent);
   --app-3-tint: var(--theme-color-3-100);
 
-  --app-4-1: var(--theme-color-4-600);
-  --app-4-2: color-mix(in oklab, var(--theme-color-4-600), var(--theme-color-4-500));
-  --app-4-3: var(--theme-color-4-500);
-  --app-4-4: color-mix(in oklab, var(--theme-color-4-500), var(--theme-color-4-400));
-  --app-4-5: var(--theme-color-4-400);
-  --app-4-6: color-mix(in oklab, var(--theme-color-4-400), var(--theme-color-4-300));
   --app-4: var(--theme-color-4-300);
   --app-4-ink: var(--theme-color-4-500);
-  --app-4-line: color-mix(in srgb, var(--theme-color-4-300) 60%, transparent);
   --app-4-tint: var(--theme-color-4-100);
 
-  --app-5-1: var(--theme-color-5-600);
-  --app-5-2: color-mix(in oklab, var(--theme-color-5-600), var(--theme-color-5-500));
-  --app-5-3: var(--theme-color-5-500);
-  --app-5-4: color-mix(in oklab, var(--theme-color-5-500), var(--theme-color-5-400));
-  --app-5-5: var(--theme-color-5-400);
-  --app-5-6: color-mix(in oklab, var(--theme-color-5-400), var(--theme-color-5-300));
   --app-5: var(--theme-color-5-300);
   --app-5-ink: var(--theme-color-5-500);
-  --app-5-line: color-mix(in srgb, var(--theme-color-5-300) 60%, transparent);
   --app-5-tint: var(--theme-color-5-100);
 
-  --app-6-1: var(--theme-color-6-600);
-  --app-6-2: color-mix(in oklab, var(--theme-color-6-600), var(--theme-color-6-500));
-  --app-6-3: var(--theme-color-6-500);
-  --app-6-4: color-mix(in oklab, var(--theme-color-6-500), var(--theme-color-6-400));
-  --app-6-5: var(--theme-color-6-400);
-  --app-6-6: color-mix(in oklab, var(--theme-color-6-400), var(--theme-color-6-300));
   --app-6: var(--theme-color-6-300);
   --app-6-ink: var(--theme-color-6-500);
-  --app-6-line: color-mix(in srgb, var(--theme-color-6-300) 60%, transparent);
   --app-6-tint: var(--theme-color-6-100);
 
-  --app-7-1: var(--theme-color-7-600);
-  --app-7-2: color-mix(in oklab, var(--theme-color-7-600), var(--theme-color-7-500));
-  --app-7-3: var(--theme-color-7-500);
-  --app-7-4: color-mix(in oklab, var(--theme-color-7-500), var(--theme-color-7-400));
-  --app-7-5: var(--theme-color-7-400);
-  --app-7-6: color-mix(in oklab, var(--theme-color-7-400), var(--theme-color-7-300));
   --app-7: var(--theme-color-7-300);
   --app-7-ink: var(--theme-color-7-500);
-  --app-7-line: color-mix(in srgb, var(--theme-color-7-300) 60%, transparent);
   --app-7-tint: var(--theme-color-7-100);
 
   --app-danger: var(--theme-color-danger-500);
@@ -136,10 +87,10 @@
   --app-success-on-tint: var(--theme-color-success-500);
 
   /* Emphasis is the one Markdown mark with a colour of its own: a slant alone
-     is easy to miss. Fixed like the status three — never the accent. */
+     is easy to miss. Fixed like the status three — never the brand. */
   --app-emphasis: var(--theme-color-success-500);
   /* Inline code is the other: a chip alone reads as a stain, not as code. Fixed
-     too, never the accent: the danger ink with its HUE turned toward orange —
+     too, never the brand: the danger ink with its HUE turned toward orange —
      tone and chroma kept, which a mix with `warning` loses (it goes brown).
      An engine without relative colours drops it and the code reads in ink. */
   --app-code-ink: oklch(from var(--theme-color-danger-500) l c calc(h + 15));

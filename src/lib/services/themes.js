@@ -29,10 +29,11 @@ export function modeAttribute(stored) {
   return isMode(stored) && stored !== DEFAULT_MODE ? stored : null;
 }
 
-/// Whether H1–H6 (and the titles sharing their scale) take the accent or
+/// Whether H1–H6 (and the titles sharing their scale) take the brand or
 /// plain ink. A look setting like the theme, not a colour: it moves which
 /// ramp `--app-heading-*` reads (styles/roles.css). Only `ink` is ever
-/// written; the accent is the default, so the attribute is absent.
+/// written; the brand is the default (stored as `accent`), so the attribute
+/// is absent.
 export const HEADING_COLORS = [
   {
     key: "accent",
@@ -57,7 +58,7 @@ export const NOTE_FONT_SIZES = [
 export const DEFAULT_NOTE_FONT_SIZE = "medium";
 
 /// The attribute value to write, or null for the size the app ships as —
-/// the same pact `themeAttribute` keeps: the default is what the stylesheet
+/// the same pact `modeAttribute` keeps: the default is what the stylesheet
 /// answers with no attribute at all.
 export function noteFontSizeAttribute(stored) {
   const known = NOTE_FONT_SIZES.some((size) => size.key === stored);

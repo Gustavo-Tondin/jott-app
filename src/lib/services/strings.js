@@ -658,7 +658,7 @@ export const S = {
   notebookColor: "Notebook colour",
   headingColor: "Headings",
   headingColorAccent: "Accent",
-  headingColorAccentHint: "Titles take the colour of the place they live in.",
+  headingColorAccentHint: "Titles take the app's colour.",
   headingColorInk: "Ink",
   headingColorInkHint: "Titles in plain text colour, like a document.",
   restoreLastScreen: "Reopen on the last screen",

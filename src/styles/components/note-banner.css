@@ -46,7 +46,7 @@
     object-fit: cover;
   }
   /* A picture may be any colour at all, so the block under it is the region's
-     quiet step rather than the accent — what shows while it loads, and what
+     quiet step rather than the brand — what shows while it loads, and what
      stays if the file is gone. */
   .note-banner--image .note-banner__block {
     background: var(--app-well);

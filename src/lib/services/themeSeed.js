@@ -24,7 +24,7 @@ export function seedFrom({ factory, worn = null }) {
   const lines = [...tokens].map(([name, value]) => `  ${name}: ${value};`);
   return [
     "/* A Jott theme: the palette, the spacing and the radius the app draws",
-    "   with. Colours run seven steps (100 pale → 700 deep); the modes decide",
+    "   with. Colours run up to seven steps (100 pale → 700 deep); the modes decide",
     "   which step goes where. Edit and save — the app repaints. */",
     ":root {",
     ...lines,

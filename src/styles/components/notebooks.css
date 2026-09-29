@@ -118,7 +118,7 @@
   .notebooks__card:active:not(:disabled) {
     scale: 0.995;
   }
-  /* The ring is the card's own ink: the accent IS the card here. Inset,
+  /* The ring is the card's own ink: the colour IS the card here. Inset,
      because the row has no room outside itself. */
   .notebooks__card:focus-visible {
     outline: 0.125rem solid var(--app-on-solid);

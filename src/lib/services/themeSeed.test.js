@@ -17,7 +17,7 @@ describe("seedFrom", () => {
     const seeded = seedFrom({ factory: ":root {\n  --theme-color-1-500: #111;\n  --theme-radius-md: 0.5rem;\n}" });
     expect(seeded).toBe(
       "/* A Jott theme: the palette, the spacing and the radius the app draws\n" +
-        "   with. Colours run seven steps (100 pale → 700 deep); the modes decide\n" +
+        "   with. Colours run up to seven steps (100 pale → 700 deep); the modes decide\n" +
         "   which step goes where. Edit and save — the app repaints. */\n" +
         ":root {\n  --theme-color-1-500: #111;\n  --theme-radius-md: 0.5rem;\n}\n",
     );
@@ -43,9 +43,9 @@ describe("seedFrom", () => {
     const seeded = seedFrom({ factory });
     const tokens = themeTokens(seeded);
     expect(tokens.size).toBe(themeTokens(factory).size);
-    // grounds + (the brand and the seven) × the grid + status × the five it
-    // is read at + space + radius
-    expect(tokens.size).toBe(5 + 8 * 7 + 3 * 5 + 12 + 7);
+    // grounds + the brand × the grid + the seven × the four they are read
+    // at + status × its five + space + radius
+    expect(tokens.size).toBe(5 + 7 + 7 * 4 + 3 * 5 + 12 + 7);
     expect(seeded).toMatch(/^\/\*[\s\S]*\*\/\n:root \{\n/);
     expect(seeded).not.toMatch(/data-(theme|mode|region)/);
     expect(seeded).toContain("--theme-color-1-500:");

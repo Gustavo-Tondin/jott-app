@@ -512,14 +512,19 @@ describe("frontend architecture", () => {
   };
 
   const STATUS = ["danger", "warning", "success"];
-  /// What a family is REQUIRED to carry. The brand and the seven run the whole
-  /// grid; status
-  /// runs the five a status colour is ever read at — the ink per ground (300,
-  /// 500), the wash behind it (700, 100) and the fill (200: a swipe's square,
-  /// a priority swatch). A status colour is never a heading, so no ladder.
-  const stepsFor = (name) => (STATUS.includes(name) ? [100, 200, 300, 500, 700] : [100, 200, 300, 400, 500, 600, 700]);
+  /// What a family is REQUIRED to carry. The brand runs the whole grid: it is
+  /// the one the headings' ladder stands on. A place runs the four it is read
+  /// at: the mark and the ink on a dark ground (300), the ink on a light one
+  /// (500) and the wash per ground (700, 100). Status runs those and the fill
+  /// (200: a swipe's square, a priority swatch).
+  const stepsFor = (name) =>
+    STATUS.includes(name)
+      ? [100, 200, 300, 500, 700]
+      : HUES.includes(name)
+        ? [100, 300, 500, 700]
+        : [100, 200, 300, 400, 500, 600, 700];
 
-  test("the palette is eight families of seven steps, and three of five", () => {
+  test("the palette is the brand of seven steps, seven places of four, and three status of five", () => {
     // The count is the parser's proof of coverage: a ninth colour, or a step
     // written in a shape the regex above cannot read, changes a number here
     // instead of silently dropping out of every measurement.
@@ -537,20 +542,20 @@ describe("frontend architecture", () => {
     }
   });
 
-  test("nothing reads a status step the palette no longer carries", () => {
-    // The trim above is only safe while the modes ask for those four and no
+  test("nothing reads a step the palette no longer carries", () => {
+    // The trim above is only safe while the modes ask for those steps and no
     // other. This is what catches a mode reaching for `--theme-color-danger-400`
     // and getting an empty custom property, which paints nothing and says nothing.
     const offenders = [];
     for (const [file, css] of themes()) {
-      for (const m of css.matchAll(/--theme-color-(danger|warning|success)-(\d00)/g)) {
+      for (const m of css.matchAll(/--theme-color-(danger|warning|success|[1-7])-(\d00)/g)) {
         if (!stepsFor(m[1]).includes(Number(m[2]))) offenders.push(`${file}: ${m[0]}`);
       }
     }
     for (const dir of ["modes", "components", "controls"]) {
       for (const f of readdirSync(join(src, "styles", dir))) {
         const css = readFileSync(join(src, "styles", dir, f), "utf8");
-        for (const m of css.matchAll(/--theme-color-(danger|warning|success)-(\d00)/g)) {
+        for (const m of css.matchAll(/--theme-color-(danger|warning|success|[1-7])-(\d00)/g)) {
           if (!stepsFor(m[1]).includes(Number(m[2]))) offenders.push(`${f}: ${m[0]}`);
         }
       }
@@ -684,8 +689,8 @@ describe("frontend architecture", () => {
       }
     }
     expect(offenders).toEqual([]);
-    // 8 families x 4 floors + 3 status x the three floors they carry.
-    expect(measured, "floors actually measured").toBe(8 * 4 + 3 * 3);
+    // The brand x 4 floors, 7 places x the two they carry, 3 status x three.
+    expect(measured, "floors actually measured").toBe(4 + 7 * 2 + 3 * 3);
   });
 
   test("a status fill carries the dark ink, on both grounds", () => {
@@ -718,7 +723,7 @@ describe("frontend architecture", () => {
     expect(offenders).toEqual([]);
   });
 
-  test("every emphasis ladder gets weaker one rung at a time", () => {
+  test("the emphasis ladder gets weaker one rung at a time", () => {
     // The rung a heading stands on has to be quieter than the one above it, on
     // the ground it is actually read against — otherwise the colour stops
     // agreeing with the size, which is what "it changes colour every other
@@ -801,8 +806,8 @@ describe("frontend architecture", () => {
     expect(offenders).toEqual([]);
     // A ground or a value this parser cannot read would make every ladder skip
     // silently, and the test would pass by measuring nothing — which it did
-    // when it was first written. 8 colours × 2 regions × 3 themes.
-    expect(laddersChecked).toBe(48);
+    // when it was first written. The brand's ladder × 2 regions × 3 themes.
+    expect(laddersChecked).toBe(6);
   });
 
   test("no component wears a modifier without the class it modifies", () => {

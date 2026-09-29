@@ -78,34 +78,32 @@ pub struct NotebookLayout {
     pub confirm_deletes: bool,
     pub confirm_image_downloads: bool,
     /// Whether the sidebar wears the rainbow — each entry the next of the
-    /// seven from the accent on (services/spaceColors.js does the dealing).
+    /// seven (services/spaceColors.js does the dealing).
     /// The notebook's own answer: leaving the rainbow writes colours into
     /// its spaces, so the two machines cannot disagree about it.
     pub rainbow_spaces: bool,
-    /// Which of the seven the app is accented with, by name. Rides in the
-    /// layout because the shell needs it on the FIRST paint (an attribute on
-    /// the document root); a second round trip would flash the wrong colours.
-    /// Empty means what the app ships as.
-    pub accent_color: String,
     /// The mode (`jott`/`light`/`dark`) and the theme (the palette's name).
+    /// They ride in the layout because the shell needs them on the FIRST
+    /// paint (attributes on the document root); a second round trip would
+    /// flash the wrong colours.
     pub mode: String,
     pub theme: String,
-    /// Whether headings take the accent or plain ink. Rides here for the same
-    /// reason: an attribute on the document root, wanted on the first paint.
+    /// Whether headings take the brand or plain ink. Rides here for the same
+    /// reason.
     pub heading_color: String,
     pub note_font_size: String,
     /// How many lines of a note a card on the board draws — a custom
     /// property on the document root, so it rides here for the reason the
-    /// accent does.
+    /// mode does.
     pub card_lines: i64,
     /// The three faces the app is read in, by family name; empty is the one
     /// the app carries. Custom properties on the document root, so they ride
-    /// here for the reason the accent does.
+    /// here for the reason the mode does.
     pub interface_font: String,
     pub note_font: String,
     pub mono_font: String,
     /// When the note's floating formatting bar shows, and which side it hugs.
-    /// Rides here for the reason the accent does: the bar is drawn as soon as
+    /// Rides here for the reason the mode does: the bar is drawn as soon as
     /// a note opens.
     pub format_bar: String,
     pub format_bar_side: String,
@@ -172,7 +170,6 @@ impl NotebookInfo {
                 confirm_deletes: config.confirm_deletes,
                 confirm_image_downloads: config.confirm_image_downloads,
                 rainbow_spaces: config.rainbow_spaces,
-                accent_color: display.accent_color,
                 mode: display.mode,
                 theme: display.theme,
                 heading_color: display.heading_color,

@@ -5,12 +5,9 @@ import {
   accentColor,
   accentInk,
   slotOf,
-  accentRung,
   accentSolid,
   accentTint,
   accentStyle,
-  accentLine,
-  badgeStyle,
 } from "./accent.js";
 
 describe("the seven colours of a place", () => {
@@ -100,28 +97,6 @@ describe("the seven colours of a place", () => {
     expect(accentInk("neutral")).toBeNull();
     expect(accentSolid("neutral")).toBeNull();
     expect(accentStyle("neutral")).toBeUndefined();
-    expect(badgeStyle("neutral")).toBeUndefined();
-  });
-
-  test("six rungs of emphasis, one per heading level", () => {
-    // Six and not three (user call, 2026-08-17): with three, the colour
-    // changed every OTHER level, which reads as an accident rather than a
-    // hierarchy. Rung 1 is the strongest, 6 the faintest.
-    for (let rung = 1; rung <= 6; rung++) {
-      expect(accentRung("blue", rung)).toBe(`var(--app-1-${rung})`);
-    }
-  });
-
-  test("a raw colour has no ladder, so it fades instead of stepping", () => {
-    // A lone hex cannot climb a ramp it does not have: the top rung is the
-    // colour itself, and the rest fade toward whatever ground it sits on.
-    expect(accentRung("#ff0000", 1)).toBe("#ff0000");
-    expect(accentRung("#ff0000", 6)).toBe(
-      "color-mix(in srgb, #ff0000 48%, transparent)",
-    );
-    for (const empty of [null, undefined, ""]) {
-      expect(accentRung(empty, 3)).toBeNull();
-    }
   });
 
   test("the solid fill is the step that carries text, and it is theme-blind", () => {
@@ -138,14 +113,5 @@ describe("the seven colours of a place", () => {
     for (const empty of [null, undefined, ""]) {
       expect(accentSolid(empty)).toBeNull();
     }
-  });
-
-  test("badgeStyle: rung 2 for the text, the line for the outline; nothing for no colour", () => {
-    expect(badgeStyle("blue")).toBe("--badge-color: var(--app-1-2); --badge-line: var(--app-1-line)");
-    expect(badgeStyle("#123456")).toBe(
-      "--badge-color: color-mix(in srgb, #123456 90%, transparent); --badge-line: color-mix(in srgb, #123456 45%, transparent)",
-    );
-    expect(badgeStyle(null)).toBeUndefined();
-    expect(accentLine("")).toBeNull();
   });
 });

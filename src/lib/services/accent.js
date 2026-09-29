@@ -65,18 +65,6 @@ export function accentInk(value) {
   return value;
 }
 
-/// A rung of the colour's SIX-STEP emphasis ladder, 1 (strongest) to 6
-/// (faintest) — the ladder H1–H6 stand on (styles/roles.css). A raw colour has
-/// no ladder: rung 1 is the colour itself, the rest fade toward the ground.
-export function accentRung(value, rung) {
-  value = stored(value);
-  if (!value) return null;
-  const s = slotOf(value);
-  if (s) return `var(--app-${s}-${rung})`;
-  const fade = [100, 90, 80, 68, 58, 48][rung - 1] ?? 100;
-  return fade === 100 ? value : `color-mix(in srgb, ${value} ${fade}%, transparent)`;
-}
-
 /// The FILL of a coloured surface — a note's banner. The one colour that does
 /// not change with the ground: nothing is written on a banner, so there is no
 /// contrast to protect (styles/roles.css).
@@ -108,26 +96,6 @@ export function accentTint(value) {
   const s = slotOf(value);
   if (s) return `var(--app-${s}-tint)`;
   return `color-mix(in srgb, ${value} 18%, transparent)`;
-}
-
-/// The matching LINE — the quiet outline of something wearing this colour
-/// (the badge's border). The ground's own `-line` for one of the seven; a raw
-/// colour is mixed down, like its tint.
-export function accentLine(value) {
-  value = stored(value);
-  if (!value) return null;
-  const s = slotOf(value);
-  if (s) return `var(--app-${s}-line)`;
-  return `color-mix(in srgb, ${value} 45%, transparent)`;
-}
-
-/// The inline `style` of a `.theme-badge` wearing a colour — the ORIGIN badge.
-/// Text on rung 2 (clears 4.5:1 on both grounds, which 10px text needs),
-/// outline on the colour's line. `undefined` with no colour, so the class's
-/// neutral defaults answer — which is what a `#tag` badge is.
-export function badgeStyle(value) {
-  const c = accentRung(value, 2);
-  return c ? `--badge-color: ${c}; --badge-line: ${accentLine(value)}` : undefined;
 }
 
 /// The inline `style` of a `.theme-dot`: the place's colour, or `undefined`

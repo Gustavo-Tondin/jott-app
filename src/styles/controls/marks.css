@@ -21,17 +21,16 @@
 
   /* ---- Badge ----
      A small READ-ONLY label (a `#tag`): no hover, no active, no touch
-     minimum. Colour in the text and a soft outline, never a fill.
-     `--badge-color`/`--badge-line` come from badgeStyle(); unset, neutral. */
+     minimum. Colour in the text and a soft outline, never a fill. */
   .theme-badge {
     display: inline-flex;
     align-items: center;
     gap: var(--app-space-4);
     max-inline-size: 100%;
     padding: 0 var(--app-space-6);
-    border: 0.0625rem solid var(--badge-line, var(--app-line));
+    border: 0.0625rem solid var(--app-line);
     border-radius: var(--app-radius-pill);
-    color: var(--badge-color, var(--app-ink-muted));
+    color: var(--app-ink-muted);
     font-family: var(--app-font-mono);
     font-size: var(--app-text-12);
     font-weight: var(--app-weight-regular);
@@ -42,8 +41,8 @@
   }
   /* A `#tag` on what carries it: the brand's ink, never the place's. */
   .theme-badge--tag {
-    --badge-color: var(--app-brand-ink);
-    --badge-line: var(--app-brand-outline);
+    border-color: var(--app-brand-outline);
+    color: var(--app-brand-ink);
   }
 
   /* ---- Title ----

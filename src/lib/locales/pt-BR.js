@@ -918,8 +918,8 @@ export default {
   headingColor: ["Headings", "Títulos"],
   headingColorAccent: ["Accent", "Destaque"],
   headingColorAccentHint: [
-    "Titles take the colour of the place they live in.",
-    "Os títulos ganham a cor do lugar onde moram.",
+    "Titles take the app's colour.",
+    "Os títulos ganham a cor do app.",
   ],
   headingColorInk: ["Ink", "Tinta"],
   headingColorInkHint: [

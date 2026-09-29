@@ -106,7 +106,7 @@
     display: contents;
   }
   /* The two verbs of a row, icon-only (user call, 2026-08-21): the circular
-     arrow in the accent says "back", the bin in the danger colour says
+     arrow in the brand says "back", the bin in the danger colour says
      "gone". Both are plates the shared .theme-btn--icon already draws; the
      glyph carries the colour, and the hover veil stays the shared one. */
   .trash-view__actions {

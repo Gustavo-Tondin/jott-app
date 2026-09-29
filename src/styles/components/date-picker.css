@@ -39,9 +39,11 @@
     color: var(--app-ink-faint);
   }
 
+  /* `minmax(0, …)`: a column is a seventh of the panel, never as wide as
+     what it holds, or the last one leaves the panel. */
   .date-picker__grid {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: var(--app-space-2);
   }
   .date-picker__weekday {
@@ -57,6 +59,7 @@
     align-items: center;
     justify-content: center;
     aspect-ratio: 1;
+    padding: 0;
     border: none;
     /* The popover's corner less the pop's padding — the last row's outer
        cells are what sit in it. */
@@ -67,7 +70,7 @@
     font-size: var(--app-text-12);
     cursor: pointer;
   }
-  .date-picker__day:hover:not(.date-picker__day--empty) {
+  .date-picker__day:hover:not(.date-picker__day--empty, .date-picker__day--selected) {
     background: var(--app-surface-sunken);
   }
   .date-picker__day--empty {
@@ -78,8 +81,7 @@
   .date-picker__day--today {
     box-shadow: inset 0 0 0 0.0625rem var(--app-brand-outline);
   }
-  .date-picker__day--selected,
-  .date-picker__day--selected:hover {
+  .date-picker__day--selected {
     background: var(--app-brand-solid);
     color: var(--app-brand-on-solid);
     font-weight: var(--app-weight-semibold);

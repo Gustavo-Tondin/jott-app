@@ -6,7 +6,7 @@
 
 @layer components {
   /* ---------------------------------------------------------------------------
-     Press — a card answering the finger: a wash of the accent laid over its
+     Press — a card answering the finger: a wash of the brand laid over its
      ground (plain or selected) and under its content, inside its own corners.
      It stands in for the system's tap highlight, zeroed in base.css. Not on a
      card being carried: the finger is still down for the whole drag.

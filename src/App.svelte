@@ -851,7 +851,6 @@
       hyphenateNotes: false,
       languages: [],
       checkSpelling: true,
-      accentColor: "",
       theme: "",
       headingColor: "",
       features: {},

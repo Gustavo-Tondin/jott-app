@@ -427,14 +427,15 @@
     flex-shrink: 0;
     color: var(--app-ink-faint);
   }
-  .shell__notebook:hover {
+  .shell__notebook:hover,
+  .shell__notebook:hover > .theme-icon {
     color: var(--app-ink);
   }
   .shell__settings {
     flex-shrink: 0;
   }
   /* A DOOR OUT OF THE SIDEBAR — Settings at the foot, the Timeline in the head
-     — lights up in the accent while its screen is open: no pill, just the ink,
+     — lights up in the brand while its screen is open: no pill, just the ink,
      so it reads as "you are here" without becoming a place in the list. */
   .shell__settings--active,
   .shell__head-action--active {

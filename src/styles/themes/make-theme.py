@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Write a Jott theme from a handful of colours you like.
 
-A theme is 95 tokens, and most of them are arithmetic: every family runs the
-same seven tones, and the app's contrast promises depend on hitting them. Choosing
+A theme is mostly colours, and most of them are arithmetic: every family sits
+on one grid of tones, and the app's contrast promises depend on hitting them. Choosing
 those by hand is how a theme ends up pretty in one region and unreadable in the
 other. So you choose the colours; this fills in the grid.
 
@@ -114,7 +114,10 @@ def contrast(a, b):
 
 # --- the grid ---------------------------------------------------------------
 TARGET = {100: 92, 200: 80, 300: 70, 400: 58, 500: 48, 600: 34, 700: 18}
-HUE_STEPS = list(TARGET)
+# The brand runs the whole grid (the headings' ladder stands on it); a place
+# runs the four it is read at; status runs those and the fill (200).
+BRAND_STEPS = list(TARGET)
+PLACE_STEPS = [100, 300, 500, 700]
 STATUS_STEPS = [100, 200, 300, 500, 700]
 CHROMA = 0.92  # of the gamut edge; the factory theme sits about here
 # Status is quieter than the places, so a warning never reads as a colour
@@ -146,7 +149,11 @@ def step(H, target, chroma=CHROMA):
     return best
 
 
-def family(H, steps=HUE_STEPS):
+def steps_of(slot):
+    return BRAND_STEPS if slot == "brand" else PLACE_STEPS
+
+
+def family(H, steps):
     return {s: step(H, TARGET[s]) for s in steps}
 
 
@@ -225,9 +232,9 @@ def check(theme, paper, ground):
 
 def render(name, theme, paper, ground, paper_tint, ground_tint, gray):
     out = [f"/* {name} — a Jott theme. Written by src/styles/themes/make-theme.py.",
-           "   Colours run seven steps (100 pale -> 700 deep) on one tone grid; the",
-           "   modes decide which step goes where. Status runs five. Edit and save —",
-           "   the app repaints. */",
+           "   Colours sit on one tone grid (100 pale -> 700 deep): the brand runs",
+           "   seven steps, a place four, status five. The modes decide which step",
+           "   goes where. Edit and save, and the app repaints. */",
            ":root {",
            f"  --theme-color-white: {paper};",
            f"  --theme-color-white-tint: {paper_tint};",
@@ -236,7 +243,7 @@ def render(name, theme, paper, ground, paper_tint, ground_tint, gray):
            f"  --theme-color-gray: {gray};",
            ""]
     for slot in FACTORY:
-        for s in HUE_STEPS:
+        for s in steps_of(slot):
             out.append(f"  --theme-color-{slot}-{s}: {theme[slot][s]};")
         out.append("")
     for status in SEEDS:
@@ -287,7 +294,7 @@ def main():
         H = hue_of(given) if given else default_hue
         if given:
             log.info("slot %s: hue %.0f from %s", slot, H, given)
-        theme[slot] = family(H)
+        theme[slot] = family(H, steps_of(slot))
     for status, seed in SEEDS.items():
         given = getattr(args, seed)
         H = hue_of(given) if given else FACTORY[seed]

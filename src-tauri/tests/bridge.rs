@@ -2814,10 +2814,10 @@ fn the_display_choices_are_kept_per_notebook_not_per_machine() {
     assert_eq!(by_path[first.path().to_str().unwrap()], "orange");
     assert_eq!(by_path[second.path().to_str().unwrap()], "green");
 
-    // And the open notebook's own layout reads the same answer, so the card
-    // and the app it opens cannot disagree.
-    let info = ok(&app, "current_notebook", json!({}));
-    assert_eq!(info["layout"]["accentColor"], json!("green"));
+    // And the open notebook's own settings read the same answer, so the card
+    // and the picker that paints it cannot disagree.
+    let saved = ok(&app, "notebook_settings", json!({}));
+    assert_eq!(saved["accentColor"], json!("green"));
 }
 
 #[test]
@@ -2836,8 +2836,8 @@ fn a_renamed_notebook_keeps_the_look_it_was_dressed_in() {
     let moved = ok(&app, "rename_notebook", json!({ "path": &root, "name": "Pessoal" }));
 
     ok(&app, "open_notebook", json!({ "path": &moved, "create": false }));
-    let info = ok(&app, "current_notebook", json!({}));
-    assert_eq!(info["layout"]["accentColor"], json!("purple"));
+    let saved = ok(&app, "notebook_settings", json!({}));
+    assert_eq!(saved["accentColor"], json!("purple"));
 }
 
 #[test]

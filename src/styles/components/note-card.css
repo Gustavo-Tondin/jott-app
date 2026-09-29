@@ -179,8 +179,9 @@
   .note-card__pin--on {
     color: var(--app-ink);
   }
-  /* The name keeps clear of the corner it shares its line with. */
-  .shell:not(.shell--compact) .note-card__title,
+  /* The name keeps clear of the corner it shares its line with. The small
+     card inside a folder has no corner. */
+  .shell:not(.shell--compact) .note-card:not(.note-card--small) .note-card__title,
   .shell:not(.shell--compact) .note-card--bare .note-preview > :first-child {
     padding-inline-end: var(--app-space-24);
   }

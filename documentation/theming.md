@@ -48,9 +48,9 @@ Two shapes, both read from `.jott/themes/`:
 ```
 
 The **name** is the file's (without `.css`) or the folder's, and that is what
-Settings shows and what the notebook stores. `default`, `light` and `dark`
-are refused — the app already answers to those, and a theme by that name
-could never be worn.
+Settings shows and what the notebook stores. `jott`, `default`, `light` and
+`dark` are refused: the app already answers to those, and a theme by that
+name could never be worn.
 
 `manifest.json` is optional and every key in it is optional:
 
@@ -90,9 +90,9 @@ THEME   what you write            :root { --theme-color-brand-300: #66a3ff; … 
   │     a mode is the function between the two, per region
 MODE    what the app ships        [data-mode="dark"] [data-region="chrome"] {
                                     --app-bg: var(--theme-color-black);
-                                    --app-1-3: var(--theme-color-1-300); … }
+                                    --app-1-ink: var(--theme-color-1-300); … }
   │
-APP     what a component reads    .theme-btn { background: var(--app-brand); }
+APP     what a component reads    .theme-badge--tag { color: var(--app-brand-ink); }
 ```
 
 A **theme** writes `--theme-*` and nothing else. It knows nothing about
@@ -133,16 +133,18 @@ is always loaded underneath.
 |---|---|---|
 | grounds | `--theme-color-white`, `-white-tint`, `-black`, `-black-tint`, `-gray` | 5 |
 | the brand | `--theme-color-brand-<100…700>` | 7 |
-| the seven | `--theme-color-<1 \| 2 \| 3 \| 4 \| 5 \| 6 \| 7>-<100…700>` | 49 |
+| the seven | `--theme-color-<1 \| 2 \| 3 \| 4 \| 5 \| 6 \| 7>-<100 300 500 700>` | 28 |
 | status | `--theme-color-<danger \| warning \| success>-<100 200 300 500 700>` | 15 |
 | shape | `--theme-radius-<xs \| sm \| md \| lg \| xl \| xxl \| pill>`, `--theme-space-<2 4 6 8 10 12 16 24 32 40 48 64>` | 19 |
 
 Things worth knowing before you change them:
 
-- **The brand and the seven run the same seven steps** (100 palest → 700
-  deepest) on one tone grid, and the modes read a *step* — 300 for every fill and for ink on
-  a dark ground, 500 for ink on a light one, 200/600 for emphasis, 100/700
-  for the quiet fills. Keep the grid and the whole app follows; break it and a
+- **Every colour sits on one tone grid** (100 palest → 700 deepest), and the
+  modes read a *step*: 300 for every fill and for ink on a dark ground, 500
+  for ink on a light one, 200/600 for emphasis, 100/700 for the quiet fills.
+  The brand runs all seven steps, because the headings stand on it; a place
+  is never a heading, so the seven run the four they are read at (100, 300,
+  500, 700). Keep the grid and the whole app follows; break it and a
   heading may stop clearing its ground. Four steps are pinned to a contrast
   floor: 200/600 at 7:1, 300/500 at 4.5:1 against their ground. (Tests
   measure the factory file; a notebook theme is yours, and nothing checks it
@@ -183,15 +185,15 @@ mean the same thing:
 
 | Role | Question it answers | Who carries it | The one form |
 |---|---|---|---|
-| **origin** | where did this come from? | a space (its group's colour wins) | the space's icon in the sidebar, the tab's dot — and, outside the space, **colour alone**: a bar on the card's left edge (`.theme-origin`), strong, no word |
-| **subject** | what is it about? | a tag | a **badge** (`.theme-badge`): `#tag` with the text on rung 2 and a soft outline on `-line` — in the colour of the card's space, so it agrees with the bar; neutral where there is no place to take it from (the tag manager) |
+| **origin** | where did this come from? | a space (its group's colour wins) | the space's icon in the sidebar, the tab's dot and, outside the space, a dot in its colour beside its name on a card, or a bar on the row's left edge (`.theme-origin`) in a list of results |
+| **subject** | what is it about? | a tag | a **badge** (`.theme-badge`): a tag has no colour of its own; on the item that carries it the `#tag` wears the brand's ink (`.theme-badge--tag`), and it is neutral in the tag manager |
 | **surface** | the face of a thing | a note's banner (`-fill`), a folder of notes (`-tint`), a notebook's card (`-solid`) | a fill; the picker previews the step it will paint with |
 | **status** | urgent? wrong? | priority, an overdue date, a notice, a swipe's square | `--app-danger` / `-warning` / `-success` for ink, plus `-fill`, `-tint` and `-on-tint`, read from the theme's own status families — never one of the seven by name |
 
 The rule that holds it together: **a card carries at most one colour of the
 palette, and it is its space's.** Everything else on it is neutral or status.
 A theme that wants the badge to look different restyles `.theme-badge`
-(`--badge-color`, `--badge-line`), and the bar `.theme-origin`.
+and `.theme-badge--tag`, and the bar `.theme-origin`.
 
 ### Going further: a full theme
 
@@ -204,13 +206,14 @@ things to know:
 - A full theme keyed on its own name (`[data-theme="mine"] [data-region="chrome"] { … }`)
   is named on the root only after its stylesheet is in the document; a
   palette-only theme needs no key at all.
-- **What a mode assigns** is listed at the top of `styles/modes/jott.css`,
-  and it is the whole list: the two grounds and the ink, `--app-<name>-1…-6`
-  per colour (a six-rung ladder, 1 strongest; H1–H6 stand on these rungs),
-  the mark and its `-ink`, `-line` and `-tint`, the status roles and their
-  `-fill`, `-tint` and `-on-tint`, the hover veil and the popover shadow.
+- **What a mode assigns** is what `styles/modes/jott.css` writes, and it is
+  the whole list: the two grounds and the ink, the brand with its six-rung
+  ladder (`--app-brand-1…-6`, 1 strongest; H1–H6 stand on these rungs), each
+  of the seven as a mark with its `-ink` and `-tint`, the status roles and
+  their `-fill`, `-tint` and `-on-tint`, the hover veil and the popover
+  shadow.
 
-### You do not have to write 95 tokens
+### You do not have to write every token
 
 `src/styles/themes/make-theme.py` writes a whole theme from a handful of
 colours you like. It reads the HUE of each colour you give and rebuilds that
@@ -250,7 +253,7 @@ the region's two neutrals swapped. They are the review, and they are fast.
 
 ## The two things that surprise people
 
-**The ladder walks in half steps.** Each colour runs 100 (lightest) → 700
+**The ladder walks in half steps.** The brand runs 100 (lightest) → 700
 (darkest) on one tonal grid, and six *pure* steps do not fit: past 500 on a
 dark ground the ramp is out of contrast — invisible, not weak. So six rungs
 come out of four steps, and the halves are `color-mix(in oklab, <step>,
@@ -260,8 +263,8 @@ the only one that is.
 Which end a region reads from is the whole trick:
 
 ```
-ON A DARK GROUND  → ink white; ladder 200→450, base 300, line 500 @45%, tint 700
-ON A LIGHT GROUND → ink black; ladder 600→350, base 500, line 300 @60%, tint 100
+ON A DARK GROUND  → ink white; ladder 200→450, ink 300, tint 700
+ON A LIGHT GROUND → ink black; ladder 600→350, ink 500, tint 100
 ```
 
 ### A mark is one colour; only ink has two halves

@@ -330,7 +330,7 @@
     />
   </div>
 
-  <!-- A setting and not a theme: a note titled in its space's colour is the
+  <!-- A setting and not a theme: a note titled in the app's colour is the
        app's face, and a reader who wants a document turns it off. -->
   {@render segmentedRow(
     S.headingColor,
