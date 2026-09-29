@@ -6,7 +6,7 @@
   import { tick } from "svelte";
   import { api } from "../services/api.js";
   import { S } from "../services/strings.js";
-  import { listName, listLabel } from "../services/paths.js";
+  import { listLabel } from "../services/paths.js";
   import { dotStyle } from "../services/accent.js";
   import { formatDate, formatDayMonth } from "../services/dates.js";
   import { ensureTaskId } from "../services/taskId.js";

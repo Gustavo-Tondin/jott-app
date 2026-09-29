@@ -1,21 +1,21 @@
 <script>
-  // A row of the eight colours — the ONE colour picker in the app. It emits a
-  // NAME (`"orange"`), never a hex: each colour is a tonal ramp, and which step
+  // A row of the seven colours, the ONE colour picker in the app. It emits a
+  // SLOT (`"5"`), never a hex: each colour is a tonal ramp, and which step
   // shows is the ground's call (services/accent.js). The swatches preview the
-  // STEP the choice will paint with (`preview`): the region's own by default
-  // (which is what makes `neutral` legible here), `fill` for a banner.
+  // STEP the choice will paint with (`preview`): the mark by default, `fill`
+  // for a banner.
   import { ACCENTS, swatchStyle } from "../services/accent.js";
   import { dismissable } from "../actions/dismissable.js";
   import { keepOnScreen } from "../actions/keepOnScreen.js";
   import { S } from "../services/strings.js";
 
   let {
-    /// The stored choice: one of the eight, a legacy raw colour, or null.
+    /// The stored choice: one of the seven, a legacy raw colour, or null.
     value = null,
-    /// Which step the swatches show — `"base"` | `"fill"` | `"solid"`
+    /// Which step the swatches show: `"base"` | `"fill"`
     /// (services/accent.js `swatchStyle`). The step the choice will PAINT.
     preview = "base",
-    /// `(name) => void` — an empty string clears it, back to the theme accent.
+    /// `(slot) => void`: an empty string clears it, back to the brand.
     onPick,
     /// Whether the leading "no colour of its own" swatch is offered.
     clearable = true,
@@ -25,7 +25,7 @@
     /// pressable and does nothing reads as broken.
     disabled = false,
     /// Fold the row behind ONE swatch that opens the rest. For a place where
-    /// the eight have to share their line with a label — the phone's settings
+    /// the seven have to share their line with a label: the phone's settings
     /// row. Where the picker has the width to itself, the row is the better
     /// control: every colour is one tap away.
     folds = false,

@@ -51,8 +51,6 @@
     /// `(entries, zone) => void` — cards dropped, by a FREE drag (Ctrl held),
     /// on a space of tasks in the sidebar or on the Home. Null: no free drag.
     onMoveTo = null,
-    /// The colour of the space these cards are in (a name) — what a tag wears.
-    color = null,
     /// `(entry) => boolean` — is this one pulled into the Day? Left alone on a
     /// screen that IS the day or the week: there it would be true of every
     /// card, which says nothing.
@@ -258,7 +256,6 @@
       task={entry.task}
       list={entry.list}
       origin={origin?.(entry) ?? null}
-      {color}
       inDay={inDay(entry)}
       arriving={arrived(entry)}
       joined={joined(entry)}

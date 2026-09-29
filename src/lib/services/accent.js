@@ -34,11 +34,6 @@ export function slotOf(value) {
   return LEGACY[value] ?? null;
 }
 
-/// True for one of the seven, an old name included.
-export function isAccent(value) {
-  return slotOf(value) !== null;
-}
-
 /// The stored value as the painters below take it: `null` for nothing and
 /// for a retired colour, so both fall back to the brand.
 const stored = (value) => (!value || RETIRED.includes(value) ? null : value);
@@ -144,23 +139,18 @@ export function dotStyle(value) {
 
 /// The inline `style` of a swatch that PREVIEWS a choice — the picker's
 /// buttons. `preview` names the step the choice will paint with, so the swatch
-/// is the colour the person gets: `"base"` for a dot or a badge, `"fill"` for
-/// a banner, `"solid"` for a card with text on it.
+/// is the colour the person gets: `"base"` for a dot, `"fill"` for a banner.
 export function swatchStyle(value, preview = "base") {
-  const c =
-    preview === "fill" ? accentFill(value) : preview === "solid" ? accentSolid(value) : accentColor(value);
+  const c = preview === "fill" ? accentFill(value) : accentColor(value);
   return c ? `--dot: ${c}` : undefined;
 }
 
 /// The two together, as the inline `style` set on the element that owns the
-/// colour. `undefined` when there is no choice (attribute left off, theme
-/// accent kept).
-export function accentStyle(value, { color = "--accent-color", tint = "--accent-tint-color" } = {}) {
+/// colour. `undefined` when there is no choice (attribute left off, the
+/// brand kept).
+export function accentStyle(value) {
   // The ink, not the mark: every reader of `--accent-color` draws a word or a
-  // hairline (the note group's title and rule, the sidebar section's bar).
+  // hairline (the note group's title and rule).
   const c = accentInk(value);
-  if (!c) return undefined;
-  // `tint: null` — the caller's element has no reader for a tint variable,
-  // so writing one would be a value with no audience.
-  return tint ? `${color}: ${c}; ${tint}: ${accentTint(value)}` : `${color}: ${c}`;
+  return c ? `--accent-color: ${c}; --accent-tint-color: ${accentTint(value)}` : undefined;
 }

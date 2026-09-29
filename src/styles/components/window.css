@@ -96,8 +96,7 @@
   .window--resizing .shell__sidebar,
   .window--resizing .titlebar__brand,
   .window--resizing .shell__panel > .inspector,
-  .window--resizing .shell__panel > .suggestions-pane,
-  .window--resizing .shell__panel > .format-bar {
+  .window--resizing .shell__panel > .suggestions-pane {
     transition: none;
   }
   .window--resizing {

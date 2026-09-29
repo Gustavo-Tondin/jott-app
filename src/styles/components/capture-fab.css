@@ -76,7 +76,7 @@
     color: var(--app-brand-on-solid);
     font-size: var(--app-text-16);
     font-weight: var(--app-weight-medium);
-    /* The same shadow one step shallower: the colour, not the whole shadow. */
+    /* The toggle's own shadow: the colour, not the whole shadow. */
     box-shadow: 0 0.125rem 0.5rem var(--app-shadow-drop);
     /* Each choice rises in from the +, the one nearer it first — the two
        arrive as a pair being dealt, not as a block switching on. */

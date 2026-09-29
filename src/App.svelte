@@ -1155,7 +1155,7 @@
     }),
   );
 
-  /// The open note's banner: one row, the eight colours folded under it.
+  /// The open note's banner: one row, the seven colours folded under it.
   let bannerMenu = $derived(
     bannerMenuOf({
       banner: openNote.banner,

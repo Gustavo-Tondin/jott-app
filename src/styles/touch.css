@@ -14,12 +14,6 @@
       opacity: 1;
     }
 
-    /* A space's colour/icon tools in the sidebar, revealed by hovering its
-       row; on touch only the ACTIVE row ever showed them. */
-    .shell__ws-tools {
-      opacity: 1;
-    }
-
     /* The × that takes a tag off a task (a subtask's grip is the shared
        `.reorder-grip` above). */
     .inspector__tag-remove,
@@ -30,12 +24,6 @@
     /* The note card's corner, WIDE touch screens only: below 768px there is no
        corner and holding the card opens the same actions (note-card.css). */
     .shell:not(.shell--compact) .note-card__pin {
-      opacity: 1;
-    }
-
-    /* Same for the ⋮ on a banner: below 768px the page menu carries it, so
-       this is for a touch screen wide enough to get the desktop shell. */
-    .note-banner__more--on-block {
       opacity: 1;
     }
   }
@@ -78,8 +66,8 @@
     }
 
     /* A task row takes the minimum; the whole card opens the task. Its box
-       is the one DRAWING that grows under a finger: at 20px the shape that
-       says "task" read small beside a 16px title on a phone. */
+       is the one DRAWING that grows under a finger, so the shape that says
+       "task" holds its own beside the title on a phone. */
     .task-row {
       min-block-size: var(--app-touch-min);
     }
@@ -92,9 +80,6 @@
       top: 0.1875rem;
       width: 0.375rem;
       height: 0.6875rem;
-    }
-    .task-row--picked .task-row__check:not(:checked)::before {
-      inset: 0.4375rem;
     }
 
     /* The checkbox inside a note has no row to hand the target to: the span

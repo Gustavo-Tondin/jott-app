@@ -9,7 +9,7 @@
   import { makeScreen } from "../services/act.js";
   import { dotStyle as dotStyleOf } from "../services/accent.js";
   import { formatDayMonth } from "../services/dates.js";
-  import { dayKind, dayOfMonth, monthOf, weekdayName } from "../services/calendar.js";
+  import { dayKind } from "../services/calendar.js";
   import TasksSpace from "../spaces/TasksSpace.svelte";
   import DayHead from "../components/DayHead.svelte";
   import DayRecap from "../components/DayRecap.svelte";
@@ -32,7 +32,6 @@
   import { liftSpaceMenu } from "../shell/spaceMenus.js";
 
   let {
-    notesFolder,
     /// The notebook's root, absolute — what an image banner's address resolves
     /// against (services/assets.js).
     root = null,
@@ -46,7 +45,6 @@
     noteTargets = [],
     /// Every list of the notebook, for the screen and its composer.
     lists = [],
-    tags = [],
     completedName = "completed",
     /// Where a task created from Home is written before joining the day.
     inbox = null,
@@ -55,8 +53,6 @@
     /// `(item) => {label, color} | null` — where an item came from, for the
     /// badge a card wears outside its space (services/origin.js).
     origin = null,
-    /// The colour of the notes space the cards come from (a name).
-    notesColor = null,
     /// `{[spacePath]: colourName}` — what a folded ghost row of a day gone
     /// by is coloured by.
     colors = {},
@@ -104,9 +100,6 @@
     onCloseCompose = null,
     /// `(done) => void` — the image picker, for a card's banner.
     onPickImage = null,
-    /// The page's ⋮ when no bar holds it (the phone's top bar hidden): every
-    /// block's ⋮ ends with it, after the block's own rows.
-    pageMenu = [],
   } = $props();
 
   let selected = $derived(day ?? today ?? "");
@@ -286,17 +279,8 @@
         ],
   );
 
-  /// What the notes block's ⋮ shows. Carrying the page's rows too, the
-  /// targets fold under a row that names them, as they do in the top bar's.
-  let notesItems = $derived.by(() => {
-    if (pageMenu.length === 0) return readOnly ? [] : notesMenu;
-    if (readOnly || notesMenu.length === 0) return pageMenu;
-    return [
-      { label: S.quickNotesGoTo, items: notesMenu.slice(1) },
-      { separator: true },
-      ...pageMenu,
-    ];
-  });
+  /// What the notes block's ⋮ shows.
+  let notesItems = $derived(readOnly ? [] : notesMenu);
 
   // Below 768px the notes block's ⋮ joins the top bar's, UNDER the tasks
   // block's (rank 1): the order the two blocks are drawn in. Folded under a
@@ -353,15 +337,11 @@
           </span>
         </span>
         <h2 class="theme-title home__block-title">{S.dayTasks(dayLabel)}</h2>
-        {#if pageMenu.length > 0}
-          {@render blockMenu(pageMenu, S.pageMenu)}
-        {:else}
-          <span class="theme-mirror home__mirror" aria-hidden="true">
-            <span class="theme-btn--icon">
-              <Icon name="dots-three-vertical-bold" size="1rem" />
-            </span>
+        <span class="theme-mirror home__mirror" aria-hidden="true">
+          <span class="theme-btn--icon">
+            <Icon name="dots-three-vertical-bold" size="1rem" />
           </span>
-        {/if}
+        </span>
       </header>
       <DayRecap
         day={selected}
@@ -391,7 +371,6 @@
         composeAutofocus={composing}
         composeDismiss={onCloseCompose}
         {lists}
-        {tags}
         {completedName}
         defaultList={quickTask?.list ?? inbox}
         {today}
@@ -401,7 +380,6 @@
         {selectedTask}
         {onSelectTask}
         {onSuggest}
-        menuTail={pageMenu}
         onLoaded={({ open, done }) => counted({ done, total: open + done })}
         {f}
         {onChanged}

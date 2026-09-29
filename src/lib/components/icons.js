@@ -41,7 +41,6 @@ import calendar from "../../assets/icons/phosphor/regular/calendar.svg?raw";
 import sunHorizon from "../../assets/icons/phosphor/regular/sun-horizon.svg?raw";
 import arrowUUpLeft from "../../assets/icons/phosphor/regular/arrow-u-up-left.svg?raw";
 import clock from "../../assets/icons/phosphor/regular/clock.svg?raw";
-import eye from "../../assets/icons/phosphor/regular/eye.svg?raw";
 import alarm from "../../assets/icons/phosphor/regular/alarm.svg?raw";
 import paperclip from "../../assets/icons/phosphor/regular/paperclip.svg?raw";
 import pencil from "../../assets/icons/phosphor/regular/pencil-simple.svg?raw";
@@ -168,7 +167,6 @@ export const ICONS = {
   "arrow-u-up-left": arrowUUpLeft,
   alarm,
   clock,
-  eye,
   paperclip,
   pencil,
   trash,

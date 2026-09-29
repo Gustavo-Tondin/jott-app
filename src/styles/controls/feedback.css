@@ -37,7 +37,7 @@
     /* Drops in rather than appearing: the eye was not looking there. */
     animation: theme-rise var(--app-duration-medium) var(--app-ease-out);
   }
-  /* Status reads the STATUS roles, never a colour of the eight by name: a
+  /* Status reads the STATUS roles, never a colour of the seven by name: a
      theme that moves its danger moves the notice with it. */
   .theme-notice--error {
     --notice-accent: var(--app-danger-on-tint);

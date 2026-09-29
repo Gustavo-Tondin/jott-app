@@ -1,12 +1,9 @@
 <script>
   // The Home's title row. On the desktop it is the MONTH alone, which goes
   // back to today: the place is named by the page header. On a phone it is
-  // "Home •" on the left and the month or the chosen day on the right,
-  // drawn TWICE (2026-09-07): once on the chrome,
-  // by DayHead.svelte, and once inside the sheet, by App.svelte. The two
-  // are pixel for pixel the same box in the same place, and it is the
-  // sheet's ground rising between them that swaps one ink for the other
-  // (day-head.css says how). One component, so the two cannot drift apart.
+  // "Home •" and the month or the chosen day, drawn TWICE: on the chrome
+  // (DayHead.svelte) and inside the sheet (App.svelte), the same box in the
+  // same place, so the sheet's rising ground swaps one ink for the other.
   import { S } from "../services/strings.js";
   import { dotStyle as dotStyleOf } from "../services/accent.js";
   import { dayOfMonth, monthOf, weekdayName } from "../services/calendar.js";
@@ -23,9 +20,10 @@
     compact = false,
     /// Which of the two the right side shows on a phone.
     showsDate = false,
-    /// The copy inside the sheet: same box, the canvas's ink, hidden from
-    /// assistive tech so the title is not read twice. It still answers a
-    /// tap — it is the one under the finger once the sheet is full.
+    /// The copy inside the sheet (a phone's, so with `compact`): same box,
+    /// the canvas's ink, hidden from assistive tech so the title is not read
+    /// twice. It still answers a tap: it is the one under the finger once
+    /// the sheet is full.
     sheet = false,
     /// The name was tapped: back to today.
     onHome,
@@ -38,39 +36,33 @@
   let dotStyle = $derived(dotStyleOf(dot));
 </script>
 
-{#if !compact && !sheet}
+{#if !compact}
   <div class="day-head__top" bind:this={el}>
     <button class="day-head__title day-head__title--month" onclick={() => onHome?.()} title={S.backToToday}>
       {monthOf(month)}
     </button>
   </div>
 {:else}
-<div
-  class="day-head__top"
-  class:day-head__top--sheet={sheet}
-  aria-hidden={sheet || undefined}
-  bind:this={el}
->
-  <button
-    class="day-head__title"
-    onclick={() => (onName ? onName() : onHome?.())}
-    title={onName ? S.showTabs : S.backToToday}
-    tabindex={sheet ? -1 : undefined}
+  <div
+    class="day-head__top"
+    class:day-head__top--sheet={sheet}
+    aria-hidden={sheet || undefined}
+    bind:this={el}
   >
-    <span class="day-head__name">{S.home}</span>
-    <span class="theme-dot day-head__dot" style={dotStyle} aria-hidden="true"></span>
-  </button>
-  <!-- One box, two contents, ONE height (day-head.css sizes it for the
-       two-line date): swapping the month for the date must not move the
-       row, because the fold and the handle stick under it — a row that
-       grew by a line mid-scroll fought the finger (user report on device,
-       2026-09-07). -->
-  <span class="day-head__aside">
-    {#if compact}
-      <!-- Both are always in the box, one over the other (a grid cell each,
-           day-head.css), and the box is as tall as the taller — so the row
-           measures the same whichever is showing. A `min-block-size` guessed
-           from font sizes was 6px short on device (2026-09-07). -->
+    <button
+      class="day-head__title"
+      onclick={() => (onName ? onName() : onHome?.())}
+      title={onName ? S.showTabs : S.backToToday}
+      tabindex={sheet ? -1 : undefined}
+    >
+      <span class="day-head__name">{S.home}</span>
+      <span class="theme-dot day-head__dot" style={dotStyle} aria-hidden="true"></span>
+    </button>
+    <!-- One box, two contents, ONE height: both are always in the box, one
+         over the other (a grid cell each, day-head.css), and the box is as
+         tall as the taller, so the row measures the same whichever is
+         showing and the fold under it never moves mid-scroll. -->
+    <span class="day-head__aside">
       <span class="day-head__month" class:is-hidden={showsDate} aria-hidden={showsDate}>
         {monthOf(month)}
       </span>
@@ -78,9 +70,6 @@
         <span class="day-head__date-day">{S.shortDay(monthOf(selected), dayOfMonth(selected))}</span>
         <span class="day-head__date-weekday">{weekdayName(selected)}</span>
       </span>
-    {:else}
-      <span class="day-head__month">{monthOf(month)}</span>
-    {/if}
-  </span>
-</div>
+    </span>
+  </div>
 {/if}

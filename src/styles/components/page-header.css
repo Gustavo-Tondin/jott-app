@@ -28,8 +28,7 @@
     text-transform: uppercase;
     color: var(--app-ink-muted);
   }
-  /* The document's own name, clicked to rename it — the only place it
-     appears, right under the tabs. */
+  /* The name as a button: it opens the tabs, or renames the note. */
   .page-header__name {
     padding: var(--app-space-2) var(--app-space-6);
     border-radius: var(--app-radius-sm);
@@ -90,13 +89,10 @@
 
 /* ---- THE COMPACT HEADER (below 768px) ----
    A different shape, not a narrower one: the arrows and the ⋮ are up in the
-   top bar; what is left is the name of the place, large, the date under it. */
+   top bar; what is left is the name of the place, large. */
 @layer components {
   .page-header--compact {
-    display: flex;
     align-items: flex-start;
-    justify-content: space-between;
-    gap: var(--app-space-12);
     /* The chrome's own ground, because the canvas begins BELOW this block —
        the wireframe rounds the panel's top corners under it. */
     background: var(--app-bg);
@@ -132,7 +128,7 @@
     letter-spacing: var(--app-tracking-tight);
     line-height: var(--app-leading-tight);
     color: var(--app-ink);
-    /* A long space name truncates rather than pushing the action off screen. */
+    /* A long space name truncates. */
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -141,10 +137,6 @@
   /* The name is still the rename button on a note; it just carries the large
      type now, so it must not re-introduce the small one. */
   .page-header--compact .page-header__name {
-    font-size: inherit;
-    font-weight: inherit;
-    letter-spacing: inherit;
-    text-transform: none;
     padding: 0;
     min-width: 0;
     overflow: hidden;

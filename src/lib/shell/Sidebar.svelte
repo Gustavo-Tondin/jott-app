@@ -645,7 +645,7 @@
         <!-- The colour/icon popup still needs somewhere to hang; it is only in
              the DOM while it is open, so nothing marks the row otherwise. -->
         {#if appearanceOpen === sp.path}
-          <span class="shell__ws-tools shell__ws-tools--open">
+          <span class="shell__ws-tools">
             <!-- The colour it is WEARING, which under the rainbow is not the
                  one in its file; the icon write still carries the stored one,
                  so changing an icon invents no colour. -->
@@ -736,7 +736,7 @@
                   </span>
                 </button>
                 {#if appearanceOpen === `group:${entry.group.folder}`}
-                  <span class="shell__ws-tools shell__ws-tools--open">
+                  <span class="shell__ws-tools">
                     <SpaceAppearance
                       open
                       color={groupColor(entry.group.folder)}

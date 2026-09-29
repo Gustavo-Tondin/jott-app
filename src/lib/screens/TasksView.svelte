@@ -15,7 +15,6 @@
     /// Every list of the notebook pulled together (`tasksShowAll`).
     showAll = false,
     lists = [],
-    tags = [],
     completedName = "completed",
     /// What is pulled into the Day, so a card can say it is in today.
     dayRefs = null,
@@ -61,7 +60,6 @@
       {onSetSort}
       {onSetOrder}
       {lists}
-      {tags}
       {completedName}
       {dayRefs}
       {readOnly}

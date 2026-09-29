@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { onBack, back, installBack } from "./back.js";
 
 // The stack is module state, so every test tears down what it registered —

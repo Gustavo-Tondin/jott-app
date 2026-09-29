@@ -20,13 +20,12 @@ function resolve(spaces = [], groups = [], { rainbow = false } = {}) {
   const spaceColor = new Map();
 
   if (rainbow) {
-    const hues = RAINBOW;
     // The fixed spaces are the app's own and wear the brand (no colour). The
     // column below them starts at index 1, in the order the sidebar draws it
     // — so two screens never disagree about which space is the orange one.
     let dealt = 1;
     for (const entry of sidebarEntries(spaces.filter((sp) => !sp.fixed), groups)) {
-      const hue = hues[dealt++ % hues.length];
+      const hue = RAINBOW[dealt++ % RAINBOW.length];
       if (entry.kind === "group") groupColor.set(entry.group.folder, hue);
       else spaceColor.set(entry.sp.path, hue);
     }
@@ -79,13 +78,12 @@ export function groupColors(spaces = [], groups = [], options = {}) {
 /// wearing nothing — or a colour of its own that is not one of the seven —
 /// leaves the position to answer, which is what the deal would have said.
 export function nextRainbowColor(spaces = [], groups = []) {
-  const hues = RAINBOW;
   // The top level is all the rainbow deals to; the fixed three are not in it.
   const entries = sidebarEntries(spaces.filter((sp) => !sp.fixed), groups);
   const last = entries[entries.length - 1];
   const worn = last ? slotOf(last.kind === "group" ? last.group.color : last.sp.color) : null;
-  const at = worn ? hues.indexOf(worn) : -1;
-  return at >= 0 ? hues[(at + 1) % hues.length] : hues[(entries.length + 1) % hues.length];
+  const at = worn ? RAINBOW.indexOf(worn) : entries.length;
+  return RAINBOW[(at + 1) % RAINBOW.length];
 }
 
 /// The deal as it goes to disk when the column leaves the rainbow: every

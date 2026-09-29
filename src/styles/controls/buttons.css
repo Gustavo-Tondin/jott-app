@@ -99,14 +99,12 @@
   /* Compact and full-width size modifiers. */
   .theme-btn--sm {
     padding: var(--app-space-4) var(--app-space-10);
-    border-radius: var(--app-radius-sm);
   }
   /* Tiniest: a per-row action that must not compete with the row's text.
      Regular weight on purpose — an affordance, not a call to action. */
   .theme-btn--xs {
     padding: var(--app-space-2) var(--app-space-8);
     border-radius: var(--app-radius-xs);
-    font-size: var(--app-text-12);
     font-weight: var(--app-weight-regular);
   }
   /* ---------------------------------------------------------------------------
@@ -130,7 +128,7 @@
     cursor: pointer;
   }
   /* Ink on hover belongs to the shape: the chip is a control everywhere it
-     is worn. A chip that paints its own ground (the accent pill) overrides. */
+     is worn. A chip that paints its own ground overrides. */
   .theme-chip:hover {
     color: var(--app-ink);
   }
@@ -202,7 +200,6 @@
   .theme-segmented__item--active {
     background: var(--app-ink);
     color: var(--app-bg);
-    font-weight: var(--app-weight-semibold);
   }
   /* Once the track's pill has the colour, the item lets go of it. */
   .theme-segmented--glides .theme-segmented__item--active {

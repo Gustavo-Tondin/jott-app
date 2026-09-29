@@ -171,7 +171,4 @@
     font-size: var(--app-text-10);
     color: var(--app-ink-muted);
   }
-  .suggestions-pane__due {
-    color: var(--app-ink-muted);
-  }
 }

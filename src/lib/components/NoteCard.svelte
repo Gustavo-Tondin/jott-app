@@ -80,7 +80,7 @@
 
   // A note is old when nobody has OPENED it in a while, not when nobody has
   // written it. The core stamps the entry; the card only says whether the
-  // number is a reading or a birth (the eye and the clock).
+  // number is a reading or a birth (the tooltip).
   let since = $derived(noteSince(entry));
   let age = $derived(
     showAge && !small

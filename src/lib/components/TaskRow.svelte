@@ -3,7 +3,7 @@
   import Badge from "./Badge.svelte";
   import { dotStyle } from "../services/accent.js";
   import { leafOf } from "../services/paths.js";
-  import { priorityClass } from "../services/taskFields.js";
+  import { PRIORITIES, priorityClass } from "../services/taskFields.js";
   import { formatDate } from "../services/dates.js";
   import { formatAt } from "../services/reminders.js";
   import { ageStamp } from "../services/age.js";
@@ -21,9 +21,6 @@
     /// shown OUTSIDE it (the day, the week): the first fact of the meta row,
     /// a dot of its colour and its name. Null inside its own space.
     origin = null,
-    /// The colour of the space the card is IN — what its tags wear when
-    /// there is no origin to take it from (services/accent.js, a name).
-    color = null,
     selected = false,
     /// Marked in the list's picking mode: the tint of `selected` plus a dot
     /// in the box, so a mark reads as a mark and not as "open in the inspector".
@@ -311,7 +308,7 @@
           >{/if}
         {#if task.priority && f("priority")}<span
             class="task-row__field task-row__field--priority task-row__field--{priorityClass(task.priority)}"
-            title={`${S.priorityLabel}: ${[S.priorityHigh, S.priorityMedium, S.priorityLow][task.priority - 1] ?? task.priority}`}
+            title={`${S.priorityLabel}: ${PRIORITIES.find((p) => p.value === String(task.priority))?.label() ?? task.priority}`}
             ><Icon name="flag" size="0.75rem" /></span
           >{/if}
       </div>

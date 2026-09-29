@@ -2,7 +2,6 @@ import { describe, test, expect } from "vitest";
 import {
   ACCENTS,
   DEFAULT_ACCENT,
-  isAccent,
   accentColor,
   accentInk,
   slotOf,
@@ -22,7 +21,7 @@ describe("the seven colours of a place", () => {
     expect(accentColor("orange")).toBe("var(--app-5)");
     expect(accentTint("orange")).toBe("var(--app-5-tint)");
     for (const name of ACCENTS) {
-      expect(isAccent(name)).toBe(true);
+      expect(slotOf(name)).toBe(name);
       expect(accentColor(name)).toBe(`var(--app-${name})`);
     }
   });
@@ -34,7 +33,7 @@ describe("the seven colours of a place", () => {
     // day this stops working is the day a rename empties someone's sidebar.
     const wasCalled = { blue: "1", purple: "2", pink: "3", red: "4", orange: "5", yellow: "6", green: "7" };
     for (const [old, slot] of Object.entries(wasCalled)) {
-      expect(isAccent(old), `${old} still reads`).toBe(true);
+      expect(slotOf(old), `${old} still reads`).toBe(slot);
       expect(accentColor(old)).toBe(`var(--app-${slot})`);
       expect(accentInk(old)).toBe(`var(--app-${slot}-ink)`);
       expect(accentTint(old)).toBe(`var(--app-${slot}-tint)`);
@@ -58,7 +57,7 @@ describe("the seven colours of a place", () => {
     // cannot follow the ground, so its tint is mixed from the colour itself.
     expect(accentColor("#ff0000")).toBe("#ff0000");
     expect(accentTint("#ff0000")).toBe("color-mix(in srgb, #ff0000 18%, transparent)");
-    expect(isAccent("#ff0000")).toBe(false);
+    expect(slotOf("#ff0000")).toBeNull();
     // A name from a newer build is not one of ours either, and is not dropped.
     expect(accentColor("teal")).toBe("teal");
   });
@@ -67,8 +66,8 @@ describe("the seven colours of a place", () => {
     // The INK, not the mark: every reader of this pair draws a word or a
     // hairline, and the mark is one colour on both grounds — 2.2:1 on the
     // canvas, which no stroke and no word may sit at.
-    expect(accentStyle("blue", { color: "--group-color", tint: "--group-tint" })).toBe(
-      "--group-color: var(--app-1-ink); --group-tint: var(--app-1-tint)",
+    expect(accentStyle("blue")).toBe(
+      "--accent-color: var(--app-1-ink); --accent-tint-color: var(--app-1-tint)",
     );
   });
 
@@ -95,7 +94,7 @@ describe("the seven colours of a place", () => {
   test("a retired colour reads as no colour, and is never a raw value", () => {
     // `neutral` was the eighth until the brand got a family of its own. A file
     // that still says so must not reach CSS as the word `neutral`.
-    expect(isAccent("neutral")).toBe(false);
+    expect(slotOf("neutral")).toBeNull();
     expect(ACCENTS).not.toContain("neutral");
     expect(accentColor("neutral")).toBeNull();
     expect(accentInk("neutral")).toBeNull();

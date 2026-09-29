@@ -211,7 +211,6 @@
     border-radius: calc(var(--app-radius-lg) - var(--app-space-8));
   }
   .note-card--small .note-card__title {
-    padding: 0;
     font-size: var(--app-text-13);
     display: -webkit-box;
     -webkit-line-clamp: 3;
@@ -255,14 +254,18 @@
   .note-group__bar .note-card__more {
     color: var(--accent-color, var(--app-brand-ink));
   }
-  .note-group__name {
+  /* The folder's name, on the card and at the head of its open panel. */
+  .note-group__name,
+  .note-group__panel-name {
     flex: 1;
     min-inline-size: 0;
     font-weight: var(--app-weight-semibold);
-    text-align: start;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  .note-group__name {
+    text-align: start;
   }
   .note-group__count {
     font-size: var(--app-text-12);
@@ -311,14 +314,6 @@
     align-items: center;
     gap: var(--app-space-6);
     font-size: var(--app-text-13);
-  }
-  .note-group__panel-name {
-    flex: 1;
-    min-inline-size: 0;
-    font-weight: var(--app-weight-semibold);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
   .note-group__close {
     color: var(--app-ink-muted);

@@ -7,7 +7,7 @@
 @layer components {
   /* ---- Origin ----
      WHERE a card came from, as colour alone: a bar on its left edge. The
-     parent is `position: relative` and adds `--origin-room` to its padding.
+     parent is `position: relative` and keeps room for it in its padding.
      `--dot` is the colour (dotStyle()); unset, the brand. */
   .theme-origin {
     position: absolute;

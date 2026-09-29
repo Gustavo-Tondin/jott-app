@@ -883,7 +883,6 @@ export const S = {
   // has to SAY how many tabs are behind it.
   openTabs: (count) => (count === 1 ? "1 open tab" : `${count} open tabs`),
   openSidebar: "open sidebar",
-  // The same two, as items of the page's ⋮ once the top bar is hidden.
   showTabs: "show the tabs",
   closeSheet: "close",
   closeComposer: "close the new task bar",

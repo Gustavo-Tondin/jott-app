@@ -107,8 +107,7 @@
   }
   .shell__sidebar--rail .shell__nav-label,
   .shell__sidebar--rail .shell__count,
-  .shell__sidebar--rail .shell__notebook,
-  .shell__sidebar--rail .shell__badge {
+  .shell__sidebar--rail .shell__notebook {
     display: none;
   }
   .shell__sidebar-scroll {
@@ -122,11 +121,6 @@
     gap: var(--app-space-16);
     /* Block padding keeps the groups off the head/footer borders. */
     padding: var(--app-space-16) 0;
-  }
-  /* Rail: the right-hand padding gives way so the 56px column fits the icon
-     band; the LEFT paddings stay, so every icon keeps its x. */
-  .shell__sidebar--rail .shell__sidebar-scroll {
-    padding-inline-end: 0;
   }
   .shell__sidebar--rail .shell__nav-item--secondary {
     display: none;
@@ -219,8 +213,10 @@
     gap: var(--app-space-2);
     padding-inline: var(--app-space-4);
   }
-  /* A GROUP, and only a group, runs a 2px bar down the wall in its colour. */
-  .shell__group--bar::before {
+  /* A GROUP, and only a group, runs a 2px bar down the wall in its colour;
+     on the rail the same bar is the button that folds it. */
+  .shell__group--bar::before,
+  .shell__group-fold::before {
     content: "";
     position: absolute;
     inset-block: 0;
@@ -248,7 +244,7 @@
 
   /* ---- space colour: Sidebar.svelte writes the pick as --group-color, which
      already follows the region's ground (services/accent.js). Unset means no
-     colour of its own, and the fallback is the accent. ---- */
+     colour of its own, and the fallback is the brand. ---- */
   .shell__group--space {
     --gc-strong: var(--group-color, var(--app-brand-ink));
     --gc-mark: var(--group-mark, var(--app-brand));
@@ -300,13 +296,6 @@
     cursor: pointer;
   }
   .shell__group-fold::before {
-    content: "";
-    position: absolute;
-    inset-block: 0;
-    inset-inline-start: 0;
-    inline-size: 0.125rem;
-    border-radius: var(--app-radius-pill);
-    background: var(--gc-mark);
     transition: inline-size var(--app-transition-fast);
   }
   .shell__group-fold:hover::before,
@@ -320,14 +309,6 @@
     gap: var(--app-space-2);
     flex-shrink: 0;
     padding-inline-end: var(--app-space-4);
-    opacity: 0;
-    transition: opacity var(--app-transition-fast);
-  }
-  .shell__nav-item--row:hover .shell__ws-tools,
-  .shell__nav-item--active .shell__ws-tools,
-  /* Opened from the right-click menu, without the pointer on the row. */
-  .shell__ws-tools--open {
-    opacity: 1;
   }
   /* The rail has no room for a popup anchored inside a 3.5rem row. */
   .shell__sidebar--rail .shell__ws-tools {
@@ -335,8 +316,7 @@
   }
   /* A carried item needs a solid backdrop over its neighbours. */
   .shell__nav-item.reorder-item--carried,
-  .shell__entry.reorder-item--carried,
-  .shell__group--space.reorder-item--carried {
+  .shell__entry.reorder-item--carried {
     background: var(--app-surface);
     border-radius: var(--app-radius-md);
   }
@@ -388,14 +368,12 @@
   }
   .shell__nav-item--secondary {
     height: auto;
-    padding-block: var(--app-space-8);
-    font-size: var(--app-text-14);
     color: var(--app-ink-faint);
   }
 
   /* ---- space/group rows: modifiers of .shell__nav-item, so they come AFTER
-     it (same specificity, order decides). `--head` collapses its members;
-     `--member` is a space inside a group, shorter. ---- */
+     it (same specificity, order decides). `--head` collapses its members.
+     The indent of a member belongs to the level's container (`--nested`). ---- */
   .shell__nav-item--row {
     padding: 0;
     position: relative;
@@ -413,10 +391,6 @@
     font: inherit;
     text-align: left;
   }
-  /* A member is a row like any other; the indent belongs to the level's
-     container (`--nested`), not here. */
-  /* The rail keeps the members: its `.shell__nav-item` padding wins over the
-     member's (two classes to one), so their icons land in the same column. */
   /* The pane foot; its top hairline is .theme-pane-foot's. */
   .shell__sidebar-footer {
     display: flex;
@@ -455,9 +429,6 @@
   }
   .shell__notebook:hover {
     color: var(--app-ink);
-  }
-  .shell__notebook:hover > .icon {
-    color: inherit;
   }
   .shell__settings {
     flex-shrink: 0;
@@ -544,7 +515,7 @@
     position: relative;
   }
 
-  /* ---- right panel: the wrapper (App.svelte) clips its fixed-width child so
+  /* ---- right panel: the wrapper (RightPanel.svelte) clips its fixed-width child so
      the slide reveals it without reflowing the content inside. ---- */
   .shell__panel {
     flex: 0 0 auto;
@@ -740,12 +711,6 @@
     transition: none;
   }
 
-  /* The drawer's head meets the status bar exactly as the top bar does: the
-     sidebar already pads by the inset, so the head adds no air of its own. */
-  .shell--compact .shell__sidebar-head {
-    padding-block-start: 0;
-  }
-
   .shell--compact {
     /* The fold gutter, narrowed to the glyph (styles/tokens.css). On the SHELL
        because two components read it: the editor and the note's banner. */
@@ -867,7 +832,7 @@
     flex: none;
     block-size: var(--day-head-row);
     scroll-snap-align: end;
-    scroll-margin-block-end: calc(var(--app-space-40) - var(--app-format-strip, 0rem));
+    scroll-margin-block-end: calc(var(--app-space-40) - var(--app-format-strip));
   }
 
   /* ---- the screen's entrance (App.svelte keys it on the view). ---- */

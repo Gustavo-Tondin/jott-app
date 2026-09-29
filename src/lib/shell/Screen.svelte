@@ -106,9 +106,6 @@
     onSection,
     /// `(done) => void` — the image picker, for a note card's banner.
     onPickImage,
-    /// The page's ⋮ when no bar holds it (App.svelte `bare`): the Home's
-    /// blocks carry it after their own rows.
-    blockMenu = [],
   } = $props();
 </script>
 
@@ -117,7 +114,6 @@
     bind:this={homeView}
     {compact}
     {origin}
-    notesColor={spColors[layout.notesFolder] ?? null}
     colors={spColors}
     ghostTasks={layout.timelineGhostTasks ?? false}
     ghostNotes={layout.timelineGhostNotes ?? false}
@@ -128,10 +124,8 @@
     dateFormat={layout.dateDisplayFormat}
     quickNoteFolder={layout.quickNoteFolder}
     quickTask={quickTaskTo}
-    notesFolder={layout.notesFolder}
     noteTargets={quickTargets}
     lists={notebook.lists}
-    {tags}
     completedName={layout.completedName}
     inbox={layout.inbox}
     readOnly={notebook.readOnly}
@@ -149,7 +143,6 @@
     {onPickDay}
     {onSummary}
     {onPickImage}
-    pageMenu={blockMenu}
     {f}
   />
 {:else if view.kind === "tasks"}
@@ -160,7 +153,6 @@
     {inboxSource}
     showAll={layout.tasksShowAll ?? false}
     lists={notebook.lists}
-    {tags}
     completedName={layout.completedName}
     today={clock?.today}
     readOnly={notebook.readOnly}
@@ -306,7 +298,6 @@
       space={current}
       color={spColors[current.path] ?? null}
       lists={notebook.lists}
-      {tags}
       completedName={layout.completedName}
         root={notebook.path}
       {noteSpaces}

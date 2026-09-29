@@ -61,9 +61,7 @@
   .tag-picker__option:hover {
     background: var(--app-surface-sunken);
   }
-  /* Name + Create on one line. The colour row that used to follow is gone
-     (2026-08-26): a tag has no colour of its own — the card's colour is the
-     space's. */
+  /* Name + Create on one line. A tag has no colour of its own. */
   .tag-picker__create {
     display: flex;
     align-items: center;

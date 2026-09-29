@@ -63,18 +63,20 @@
   .task-row__top {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: var(--app-space-8);
   }
-  .task-row__title {
+  /* The name, and the field that renames it in place: one box, one face. */
+  .task-row__title,
+  .task-row__edit {
     flex: 1;
     min-width: 0;
-    text-align: left;
-    padding: 0;
     font: inherit;
     font-size: var(--app-text-18);
     font-weight: var(--app-weight-medium);
     line-height: 1.2;
+  }
+  .task-row__title {
+    text-align: left;
+    padding: 0;
     color: var(--app-ink);
     white-space: nowrap;
     overflow: hidden;
@@ -215,14 +217,6 @@
       translate: 0 var(--app-space-16);
     }
   }
-  .task-row__edit {
-    flex: 1;
-    min-width: 0;
-    font: inherit;
-    font-size: var(--app-text-18);
-    font-weight: var(--app-weight-medium);
-    line-height: 1.2;
-  }
   /* THE CARD'S END: the glyph (bookmark or ×) over the age, a pair centred
      in the card. Both take the same least width (`--aside-slot`, three mono
      characters) and centre in it, so they share ONE axis on every card; a
@@ -274,11 +268,8 @@
   /* The sun marks a card that is in a day, and LIGHTS UP the moment it joins
      one: a pop in the accent — the colour of the act — settling into the meta
      row's own ink. It answers the button, the swipe and the inspector alike,
-     because it plays on the state, not on the gesture. */
-  .task-row__sun {
-    /* A transform needs a box: the wrapper is a span. */
-    display: inline-flex;
-  }
+     because it plays on the state, not on the gesture. The wrapper is a
+     `.task-row__field`, so it has the box a transform needs. */
   .task-row__sun--lit {
     animation: task-row-sun-pop var(--app-duration-slow) var(--app-ease-spring);
   }
@@ -326,7 +317,6 @@
   /* Task age (spec 3.6): quiet until the notebook calls it forgotten, then
      the same warning ink an overdue date takes. */
   .task-row__field--age {
-    flex-shrink: 0;
     min-inline-size: var(--aside-slot);
     justify-content: center;
     color: var(--app-ink-faint);
@@ -334,12 +324,6 @@
   }
   .task-row__field--forgotten {
     color: var(--app-warning);
-  }
-  /* The reminder: its glyph alone. */
-  .task-row__field--remind {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--app-space-2);
   }
   /* An overdue due date reads as a warning, not a quiet note. */
   .task-row__field--overdue {

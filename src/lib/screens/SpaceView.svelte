@@ -11,7 +11,6 @@
     // in one (services/spaceColors.js). Never `space.color` directly.
     color = null,
     lists = [],
-    tags = [],
     completedName = "completed",
     /// The notebook's root, and every notes space of it — what a notes screen
     /// needs and a tasks screen ignores: an image address resolves against the
@@ -73,7 +72,6 @@
     <Screen
       {source}
       {lists}
-      {tags}
       {completedName}
       {root}
       {noteSpaces}

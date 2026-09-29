@@ -172,8 +172,10 @@
   }
 
   /* The × of a value waits for the pointer; a finger has none, so there it
-     stays (touch.css). */
+     stays (touch.css). It stands before the value, so every value ends on
+     the same edge. */
   .inspector__field-clear {
+    order: 1;
     opacity: 0;
   }
   .inspector__field:hover .inspector__field-clear,
@@ -200,16 +202,14 @@
   }
 
   /* ---- tags: pills + inline add ---- */
-  .inspector__tags {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--app-space-8);
-  }
   /* The picker's panel hangs from the ROW, as wide as the panel's content:
      hung from the button it would run past the panel's edge and be cut. */
   .inspector__tags {
     position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--app-space-8);
   }
   .inspector__tags > .tag-picker {
     position: static;
@@ -295,7 +295,10 @@
     flex: 1 1 auto;
     color: var(--app-ink-muted);
   }
-  .inspector__field-word {
+  /* A name that does not fit is cut, never wrapped. */
+  .inspector__field-word,
+  .inspector__file-name,
+  .inspector__origin-name {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -305,15 +308,10 @@
   .inspector__field-label--p1 {
     color: var(--app-danger);
   }
-  /* The × stands before the value, so every value ends on the same edge. */
-  .inspector__field-clear {
-    order: 1;
-  }
   .inspector__field-value,
   .inspector__stepper,
   .inspector__field > .theme-select {
     order: 2;
-    flex: 0 0 auto;
   }
   .inspector__field-value {
     display: inline-flex;
@@ -424,7 +422,6 @@
   }
   .inspector__field--stacked .inspector__time {
     flex: 1 1 4rem;
-    min-inline-size: 0;
   }
   /* WebKit lays a time field out in its own box, deaf to text-align. */
   .inspector__time::-webkit-datetime-edit {
@@ -476,12 +473,6 @@
   .inspector__file-open:hover .inspector__file-name {
     color: var(--app-brand-ink);
   }
-  .inspector__file-name {
-    min-inline-size: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
   /* "Add files" is a whole row that presses. */
   .inspector__add-file {
     inline-size: 100%;
@@ -494,13 +485,6 @@
   }
   .inspector__add-file:hover .inspector__field-label {
     color: var(--app-ink);
-  }
-
-  /* ---- the card at the end of the scroll: the fields that are off ----
-     The shell's Notice (controls/feedback.css), inset like the cards. Gone
-     once closed (Settings › Tasks brings it back) and with every field on. */
-  .inspector__offer {
-    flex-shrink: 0;
   }
 
   /* ---- when the task was written: a fact, over the foot ----
@@ -549,12 +533,6 @@
   .inspector__origin--button:hover {
     border-color: var(--app-ink-faint);
     color: var(--app-ink);
-  }
-  .inspector__origin-name {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
 
   /* A finger's inspector: below 768px the panel is a bottom sheet

@@ -109,9 +109,6 @@
     border-radius: var(--app-radius-sm);
     font-size: var(--app-text-12);
   }
-  .theme-input--filled:hover:not(:disabled):not(:focus) {
-    border-color: var(--app-brand-outline);
-  }
 
   /* --- Plain: borderless, inherits the surrounding font/colour. An inline
      editable title or list item (inspector name / subtask). --- */
@@ -186,9 +183,7 @@
   .theme-checkbox--lg:checked::after {
     left: 0.4375rem;
     top: 0.1875rem;
-    width: 0.3125rem;
     height: 0.625rem;
-    border-width: 0 0.125rem 0.125rem 0;
   }
   /* Smaller still, for a nested list like the inspector's subtasks. */
   .theme-checkbox--sm {

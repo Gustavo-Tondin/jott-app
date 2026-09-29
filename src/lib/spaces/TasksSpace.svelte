@@ -36,7 +36,6 @@
   let {
     source,
     lists = [],
-    tags = [],
     completedName = "completed",
     today = null,
     dateFormat = "mm/dd/yyyy",
@@ -60,9 +59,6 @@
     all = false,
     /// Whether to draw the titled header (title + New task + ⋮).
     header = true,
-    /// Rows the ⋮ ends with, after a rule: the page's own, when no bar
-    /// holds them (the Home with the top bar hidden).
-    menuTail = [],
     /// Where the title sits on that row: `"start"` (a block inside a screen
     /// with other blocks) or `"center"` (the Home and a space, where the block
     /// IS the screen).
@@ -291,9 +287,6 @@
   const lift = liftSpaceMenu();
   let lifted = $derived(lift.lifted());
   $effect(() => lift.offer(sortMenu));
-  let ownMenu = $derived(
-    menuTail.length ? [...sortMenu, { separator: true }, ...menuTail] : sortMenu,
-  );
 
   // ---- composing ----
   // Every list a task may be written into. A source with a list of its own
@@ -688,7 +681,7 @@
               </button>
             {/if}
             {#if !lifted}
-              <Menu items={ownMenu}>
+              <Menu items={sortMenu}>
                 {#snippet trigger({ toggle })}
                   <button
                     class="theme-btn--icon tasks-space__more"
@@ -722,7 +715,6 @@
         dividerClass="tasks-space__pin-divider"
         pinned={!isDay || pinsDay}
         origin={isDay || all ? origin : null}
-        color={dot}
         onMoveTo={moveTo}
         {inDay}
         {arrived}
@@ -767,7 +759,6 @@
         items={shownCompleted}
         listClass="tasks-space__list tasks-space__list--completed"
         origin={isDay ? origin : null}
-        color={dot}
         onMoveTo={moveTo}
         {f}
         {isSelected}

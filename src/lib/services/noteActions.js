@@ -17,7 +17,7 @@ export function bannerOf(value) {
   return { kind: isImage(value) ? "image" : "color", value };
 }
 
-/// A note's banner, as one row with the eight colours folded under it — the
+/// A note's banner, as one row with the seven colours folded under it: the
 /// open note's and a card's. The palette is words here (with the fill each
 /// paints with as a dot) and swatches in the title's popover; the VALUE is the
 /// same name either door, which is what keeps the file readable by hand. No
