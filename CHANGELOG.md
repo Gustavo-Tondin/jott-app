@@ -11,6 +11,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 ### New
 
 - Settings → Display → "Simple task rows" draws tasks as a plain list: a line under each task and the title alone.
+- In a table, dragging from one cell into another (or Shift+click) selects a block of cells: Delete empties it, Ctrl+C copies it as a table and Ctrl+Z undoes.
 
 ### Improved
 
@@ -27,6 +28,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 - The Home's head shows the month, and each day is a number on a disc, blue for the chosen one.
 - Checkboxes are round, and what is ticked, active or primary is drawn in ink instead of a colour.
 - The sidebar shows Home, Tasks and Notes as three tiles, a space wears its colour on its icon only, and a group is a name with a coloured bar.
+- Selected text inside a table cell is the same light blue as in the rest of the note, and a table caught in a selection is outlined.
 - A notebook whose copy of the palette (`.jott/themes/jott.css`) was never edited gets the new colours by itself; an edited copy is left as it is.
 - A theme writes four steps for each of the seven colours (100, 300, 500 and 700), the ones the app draws.
 - Notes now live directly in their space's folder and no longer go into an `Inbox/` subfolder.

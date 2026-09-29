@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
+import { history } from "@codemirror/commands";
 import { noteTables, refreshTables, tableDecorationsFor } from "./tableWidget.js";
 import { activeCell, addRow, currentCell, insertTable } from "./tableEditing.js";
 
@@ -19,7 +20,7 @@ afterEach(() => {
   views = [];
 });
 
-function mount(doc, { shows } = {}) {
+function mount(doc, { shows, history: withHistory } = {}) {
   const parent = document.createElement("div");
   document.body.appendChild(parent);
   const view = new EditorView({
@@ -30,6 +31,7 @@ function mount(doc, { shows } = {}) {
         markdown({ base: markdownLanguage }),
         activeCell,
         noteTables(shows ? { shows } : {}),
+        withHistory ? history() : [],
       ],
     }),
   });
@@ -214,6 +216,134 @@ describe("dragging", () => {
     pointer(handle, "pointerup", { clientX: 5, clientY: 25 });
     expect(view.state.doc.toString().split("\n")[2]).toBe("| 3   | 4   |");
     expect(view.state.doc.toString().split("\n")[3]).toBe("| 1   | 2   |");
+  });
+});
+
+// Picking a block of cells: a drag that leaves its cell, or Shift+click. What
+// can break is the hand-off from text selection to the block, so it is driven
+// through the real widget's listeners.
+describe("picking cells", () => {
+  const BIG = `${TABLE}\n| 3 | 4 |`;
+  const pointer = (target, type, init) =>
+    target.dispatchEvent(
+      new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 3, pointerType: "mouse", ...init }),
+    );
+  const picked = (view) =>
+    [...view.dom.querySelectorAll("[data-pick]")].map((box) => {
+      const { row, col } = box.querySelector(".cm-md-table__cell").dataset;
+      return `${row},${col}:${box.dataset.pick}`;
+    });
+  const drag = (view, from, to) => {
+    pointer(cell(view, ...from), "pointerdown");
+    pointer(cell(view, ...to), "pointermove", { buttons: 1 });
+    pointer(cell(view, ...to), "pointerup");
+  };
+  const body = (view) => view.state.doc.toString().split("\n").slice(2);
+
+  it("a drag inside one cell picks nothing: that is text selection", () => {
+    const view = mount(BIG);
+    pointer(cell(view, 0, 0), "pointerdown");
+    pointer(cell(view, 0, 0), "pointermove", { buttons: 1 });
+    expect(picked(view)).toEqual([]);
+  });
+
+  it("a drag into another cell picks the block, ringed on its outer edges", () => {
+    const view = mount(BIG);
+    drag(view, [-1, 1], [1, 0]);
+    expect(picked(view)).toEqual([
+      "-1,0:top start",
+      "-1,1:top end",
+      "0,0:start",
+      "0,1:end",
+      "1,0:bottom start",
+      "1,1:bottom end",
+    ]);
+    expect(view.dom.querySelector(".cm-md-table--picking")).not.toBe(null);
+  });
+
+  it("back over the first cell keeps a block of one", () => {
+    const view = mount(BIG);
+    pointer(cell(view, 0, 0), "pointerdown");
+    pointer(cell(view, 0, 1), "pointermove", { buttons: 1 });
+    pointer(cell(view, 0, 0), "pointermove", { buttons: 1 });
+    expect(picked(view)).toEqual(["0,0:top bottom start end"]);
+  });
+
+  it("a finger's drag does not pick", () => {
+    const view = mount(BIG);
+    pointer(cell(view, 0, 0), "pointerdown", { pointerType: "touch" });
+    pointer(cell(view, 1, 1), "pointermove", { buttons: 1, pointerType: "touch" });
+    expect(picked(view)).toEqual([]);
+  });
+
+  it("Shift+click picks from the focused cell, and a plain click drops it", () => {
+    const view = mount(BIG);
+    cell(view, 0, 1).focus();
+    pointer(cell(view, 1, 1), "pointerdown", { shiftKey: true });
+    expect(picked(view)).toEqual(["0,1:top start end", "1,1:bottom start end"]);
+    pointer(cell(view, 0, 0), "pointerdown");
+    expect(picked(view)).toEqual([]);
+  });
+
+  it("Backspace empties the block in one change, and Escape drops it", () => {
+    const view = mount(BIG);
+    cell(view, 0, 0).focus();
+    drag(view, [0, 0], [1, 0]);
+    key(cell(view, 0, 0), "Backspace");
+    expect(body(view)).toEqual(["|     | 2   |", "|     | 4   |"]);
+    expect(picked(view).length).toBe(2);
+    key(cell(view, 0, 0), "Escape");
+    expect(picked(view)).toEqual([]);
+    // Escape spent on the block: the focus is still in the table.
+    expect(view.dom.ownerDocument.activeElement).toBe(cell(view, 0, 0));
+  });
+
+  it("Ctrl+Z on a block is the editor's undo, and the block stays", () => {
+    const view = mount(BIG, { history: true });
+    cell(view, 0, 0).focus();
+    drag(view, [0, 0], [1, 1]);
+    key(cell(view, 0, 0), "Delete");
+    expect(body(view)).toEqual(["|     |     |", "|     |     |"]);
+    key(cell(view, 0, 0), "z", { ctrlKey: true });
+    expect(body(view)).toEqual(["| 1 | 2 |", "| 3 | 4 |"]);
+    expect(picked(view).length).toBe(4);
+    key(cell(view, 0, 0), "z", { ctrlKey: true, shiftKey: true });
+    expect(body(view)).toEqual(["|     |     |", "|     |     |"]);
+  });
+
+  it("Ctrl+C copies the block as a pipe table, Ctrl+X empties it too", () => {
+    const copied = [];
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: async (text) => copied.push(text) },
+    });
+    const view = mount(BIG);
+    cell(view, 0, 0).focus();
+    drag(view, [0, 0], [1, 1]);
+    key(cell(view, 0, 0), "c", { ctrlKey: true });
+    expect(copied).toEqual(["| 1   | 2   |\n| --- | --- |\n| 3   | 4   |"]);
+    key(cell(view, 0, 0), "x", { ctrlKey: true });
+    expect(body(view)).toEqual(["|     |     |", "|     |     |"]);
+    delete navigator.clipboard;
+  });
+
+  it("Ctrl+A picks the whole table; any other key goes back to the text", () => {
+    const view = mount(BIG);
+    cell(view, 0, 0).focus();
+    drag(view, [0, 0], [0, 1]);
+    key(cell(view, 0, 0), "a", { ctrlKey: true });
+    expect(picked(view).length).toBe(6);
+    expect(key(cell(view, 0, 0), "z")).toBe(true);
+    expect(picked(view)).toEqual([]);
+  });
+
+  it("rings the grid when the editor's selection runs over the whole table", () => {
+    const view = mount(`um\n\n${TABLE}\n\ndois`);
+    expect(view.dom.querySelector(".cm-md-table--selected")).toBe(null);
+    view.dispatch({ selection: { anchor: 0, head: view.state.doc.length } });
+    expect(view.dom.querySelector(".cm-md-table--selected")).not.toBe(null);
+    view.dispatch({ selection: { anchor: 0, head: 2 } });
+    expect(view.dom.querySelector(".cm-md-table--selected")).toBe(null);
   });
 });
 

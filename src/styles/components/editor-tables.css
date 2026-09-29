@@ -171,3 +171,51 @@
 .editor .cm-md-table--dragging tr.cm-md-table__target > td {
   box-shadow: inset 0 0.125rem 0 var(--app-brand-ink);
 }
+
+/* A picked block of cells (services/tableWidget.js `pick`): the selection's
+   wash on every cell and a ring on the block's outer edges only, each cell
+   naming in `data-pick` the edges it is on. While a block is picked the
+   text selection, the caret and the focus ring inside it are not shown. */
+.editor .cm-md-table [data-pick] {
+  --pick-ring: 0.125rem;
+  background: var(--app-brand-weak);
+  box-shadow:
+    inset 0 var(--pick-top, 0rem) var(--app-brand-ink),
+    inset 0 calc(-1 * var(--pick-bottom, 0rem)) var(--app-brand-ink),
+    inset var(--pick-start, 0rem) 0 var(--app-brand-ink),
+    inset calc(-1 * var(--pick-end, 0rem)) 0 var(--app-brand-ink);
+}
+.editor .cm-md-table [data-pick~="top"] {
+  --pick-top: var(--pick-ring);
+}
+.editor .cm-md-table [data-pick~="bottom"] {
+  --pick-bottom: var(--pick-ring);
+}
+.editor .cm-md-table [data-pick~="start"] {
+  --pick-start: var(--pick-ring);
+}
+.editor .cm-md-table [data-pick~="end"] {
+  --pick-end: var(--pick-ring);
+}
+/* CodeMirror forces the system `Highlight` and caret on whatever is focused
+   inside `.cm-content`, with `!important`: only `!important` answers it. The
+   cell's selection is the note's wash, which over a picked cell is no
+   selection at all (not `transparent`: WebKit paints its own colour then). */
+.editor .cm-editor .cm-md-table .cm-md-table__cell::selection {
+  background: var(--app-brand-weak) !important;
+}
+.editor .cm-md-table--picking .cm-md-table__cell {
+  caret-color: transparent !important;
+}
+.editor .cm-md-table--picking .cm-md-table__cell:focus-visible {
+  box-shadow: none;
+}
+/* The whole table under the editor's selection: the wash is the selection
+   layer's, the ring is the grid's own border. */
+.editor .cm-md-table--selected .cm-md-table__grid {
+  border-color: var(--app-brand-ink);
+  box-shadow: 0 0 0 0.0625rem var(--app-brand-ink);
+}
+.editor .cm-md-table--selected thead .cm-md-table__head {
+  background: var(--app-brand-weak);
+}

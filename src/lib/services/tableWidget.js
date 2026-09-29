@@ -4,6 +4,7 @@
 // so focus and caret stay put. The focus lives in the widget, NOT in CodeMirror:
 // its keymap and selection never see a cell, so Tab/Enter/Escape are answered here.
 
+import { redo, undo } from "@codemirror/commands";
 import { StateEffect, StateField } from "@codemirror/state";
 import { Decoration, EditorView, ViewPlugin, WidgetType } from "@codemirror/view";
 import {
@@ -12,6 +13,7 @@ import {
   clearWidths,
   moveColumn,
   moveRow,
+  renderTable,
   resizeColumn,
   setCell,
 } from "./tables.js";
@@ -90,6 +92,7 @@ class TableWidget extends WidgetType {
     this.dress(dom);
     this.fill(grid, dom);
     this.wire(dom, view);
+    dom.classList.toggle("cm-md-table--selected", covers(view.state, this.table));
     return dom;
   }
 
@@ -138,6 +141,7 @@ class TableWidget extends WidgetType {
     const mode = dom.tableWidget.mode;
     grid.textContent = "";
     this.size(grid);
+    unpick(dom);
     const head = document.createElement("thead");
     const headRow = document.createElement("tr");
     const last = model.header.length - 1;
@@ -176,6 +180,9 @@ class TableWidget extends WidgetType {
     const cellAt = (target) => target?.closest?.(".cm-md-table__cell") ?? null;
     const place = (cell) => ({ row: Number(cell.dataset.row), col: Number(cell.dataset.col) });
 
+    // First: a picked block answers its keys before Tab/Enter below see them.
+    this.wirePick(dom, view);
+
     dom.addEventListener("focusin", (event) => {
       const cell = cellAt(event.target);
       if (!cell) return;
@@ -186,6 +193,7 @@ class TableWidget extends WidgetType {
 
     dom.addEventListener("focusout", (event) => {
       if (dom.contains(event.relatedTarget)) return;
+      unpick(dom);
       dom.classList.remove("cm-md-table--active");
       view.dispatch({ effects: setActiveCell.of(null) });
     });
@@ -255,6 +263,103 @@ class TableWidget extends WidgetType {
 
     this.wireDrag(dom, view);
     this.wireResize(dom, view);
+  }
+
+  /// Picking a block of whole cells, the way a spreadsheet does: a mouse drag
+  /// that leaves the cell it began in, or Shift+click from the focused cell.
+  /// A text selection cannot do it: every cell is its own editing host.
+  /// While a block is picked, Backspace/Delete empty it, Ctrl+C/X copy it as
+  /// a pipe table, Ctrl+Z/Y are the editor's, Escape drops it and any other
+  /// key types in the cell.
+  wirePick(dom, view) {
+    let anchor = null;
+    const cellIn = (target) => {
+      const box = target?.closest?.("th, td");
+      return box && dom.contains(box) ? box.querySelector(".cm-md-table__cell") : null;
+    };
+    const place = (cell) => ({ row: Number(cell.dataset.row), col: Number(cell.dataset.col) });
+
+    dom.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0 || event.target.closest?.(".cm-md-table__handle, .cm-md-table__grip")) return;
+      const cell = cellIn(event.target);
+      if (!cell) return;
+      const focused = cellIn(dom.ownerDocument.activeElement);
+      if (event.shiftKey && focused) {
+        // The focus stays where it is: the keys of the block go to it.
+        event.preventDefault();
+        anchor = place(focused);
+        pick(dom, anchor, place(cell));
+        return;
+      }
+      unpick(dom);
+      // A finger's drag is the page scrolling, not a pick.
+      anchor = event.pointerType === "touch" ? null : place(cell);
+    });
+
+    dom.addEventListener("pointermove", (event) => {
+      if (!anchor || !(event.buttons & 1)) return;
+      const under = dom.ownerDocument.elementFromPoint?.(event.clientX, event.clientY) ?? event.target;
+      const cell = cellIn(under);
+      if (!cell) return;
+      const at = place(cell);
+      if (!dom.tableWidget.picked && at.row === anchor.row && at.col === anchor.col) return;
+      pick(dom, anchor, at);
+    });
+
+    // The engine goes on dragging a text selection in the first cell (hidden
+    // by editor-tables.css); clearing it mid-drag would re-anchor it under the
+    // pointer, focus and all, so it is only collapsed once the button is up.
+    const release = () => {
+      if (anchor && dom.tableWidget.picked) dom.ownerDocument.getSelection()?.collapseToEnd();
+      anchor = null;
+    };
+    dom.addEventListener("pointerup", release);
+    dom.addEventListener("pointercancel", release);
+
+    dom.addEventListener("keydown", (event) => {
+      const block = dom.tableWidget.picked;
+      if (!block || ["Shift", "Control", "Alt", "Meta"].includes(event.key)) return;
+      const table = dom.tableWidget.table;
+      const chord = (event.ctrlKey || event.metaKey) && !event.altKey;
+      const empty = () => {
+        let model = table.model;
+        for (const row of span(block.top, block.bottom)) {
+          for (const col of span(block.start, block.end)) model = setCell(model, row, col, "");
+        }
+        applyTable(view, table, model);
+      };
+      const done = () => {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      };
+      const back = () => {
+        unpick(dom);
+        const cell = cellIn(dom.ownerDocument.activeElement);
+        if (cell) focusEnd(cell);
+      };
+      if (event.key === "Escape") {
+        done();
+        back();
+      } else if (chord && /^[zy]$/i.test(event.key)) {
+        // The block's edits are the editor's history, not the cell's.
+        done();
+        (event.shiftKey || event.key.toLowerCase() === "y" ? redo : undo)(view);
+      } else if (event.key === "Backspace" || event.key === "Delete") {
+        done();
+        empty();
+      } else if (chord && /^[cx]$/i.test(event.key)) {
+        done();
+        navigator.clipboard.writeText(blockText(table.model, block));
+        if (event.key.toLowerCase() === "x") empty();
+      } else if (chord && event.key.toLowerCase() === "a") {
+        done();
+        const { header, rows } = table.model;
+        pick(dom, { row: -1, col: 0 }, { row: rows.length - 1, col: header.length - 1 });
+      } else {
+        // Back to the text: the key lands at the end of the focused cell.
+        back();
+      }
+    });
   }
 
   /// Dragging the border between two columns. The pair trades room and the
@@ -436,6 +541,51 @@ class TableWidget extends WidgetType {
   }
 }
 
+/// Picks the block between cells `a` and `b` (`{row, col}`, either corner
+/// first): `data-pick` on each of its `<th>`/`<td>`, naming the block's
+/// outer edges the cell is on (editor-tables.css draws them).
+function pick(dom, a, b) {
+  const block = {
+    top: Math.min(a.row, b.row),
+    bottom: Math.max(a.row, b.row),
+    start: Math.min(a.col, b.col),
+    end: Math.max(a.col, b.col),
+  };
+  dom.tableWidget.picked = block;
+  dom.classList.add("cm-md-table--picking");
+  for (const cell of dom.querySelectorAll(".cm-md-table__cell")) {
+    const row = Number(cell.dataset.row);
+    const col = Number(cell.dataset.col);
+    const box = cell.parentElement;
+    if (row < block.top || row > block.bottom || col < block.start || col > block.end) {
+      box.removeAttribute("data-pick");
+      continue;
+    }
+    box.dataset.pick = Object.keys(block)
+      .filter((edge) => block[edge] === (edge === "start" || edge === "end" ? col : row))
+      .join(" ");
+  }
+}
+
+/// Drops the picked block, if there is one.
+function unpick(dom) {
+  if (!dom.tableWidget?.picked) return;
+  dom.tableWidget.picked = null;
+  dom.classList.remove("cm-md-table--picking");
+  for (const box of dom.querySelectorAll("[data-pick]")) box.removeAttribute("data-pick");
+}
+
+/// The numbers `a` to `b`, both included.
+const span = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
+
+/// The picked block as a pipe table of its own, its first row the header.
+function blockText(model, block) {
+  const [header, ...rows] = span(block.top, block.bottom).map((row) =>
+    span(block.start, block.end).map((col) => cellOf(model, row, col)),
+  );
+  return renderTable({ header, align: header.map(() => null), rows, widths: null });
+}
+
 /// The `<colgroup>` of `grid` set to `widths` (percentages), or taken away
 /// when there are none — with no group the browser sizes the columns, which
 /// is what a table does until somebody drags a border.
@@ -575,5 +725,30 @@ export function noteTables(ctx = {}) {
     },
   );
 
-  return [field, focusing];
+  // A selection that runs over a whole table (atomic: all of it or none)
+  // rings the grid, the way a picked block is drawn.
+  const selected = ViewPlugin.fromClass(
+    class {
+      constructor(view) {
+        markSelected(view);
+      }
+      update(update) {
+        if (update.selectionSet || update.docChanged) markSelected(update.view);
+      }
+    },
+  );
+
+  return [field, focusing, selected];
+}
+
+/// Whether a non-empty range of `state`'s selection runs over all of `table`.
+const covers = (state, { from, to }) =>
+  state.selection.ranges.some((range) => !range.empty && range.from <= from && range.to >= to);
+
+/// `cm-md-table--selected` on every drawn table the selection covers. The
+/// plugins run before the DOM follows, so a table drawn new asks in `toDOM`.
+function markSelected(view) {
+  for (const dom of view.dom.querySelectorAll(".cm-md-table")) {
+    dom.classList.toggle("cm-md-table--selected", covers(view.state, dom.tableWidget.table));
+  }
 }

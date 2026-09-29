@@ -376,8 +376,8 @@ describe("what the editor actually paints", () => {
           ],
         }),
       });
-      // The table's two states that only a hand brings about: a cell with
-      // the focus, and a handle being dragged (services/tableWidget.js).
+      // The table's states that only a hand brings about: a cell with the
+      // focus, and a handle being dragged (services/tableWidget.js).
       view.dom.querySelector(".cm-md-table__cell")?.focus();
       view.dom
         .querySelector(".cm-md-table__handle")
@@ -388,7 +388,14 @@ describe("what the editor actually paints", () => {
       for (const grip of view.dom.querySelectorAll(".cm-md-table__grip")) {
         grip.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerId: 2 }));
       }
-      const html = view.dom.querySelector(".cm-content").innerHTML;
+      // A block of cells picked by a drag, and the whole note selected.
+      const [first, second] = view.dom.querySelectorAll(".cm-md-table__cell");
+      const hand = { bubbles: true, pointerId: 3, pointerType: "mouse" };
+      first?.dispatchEvent(new PointerEvent("pointerdown", hand));
+      second?.dispatchEvent(new PointerEvent("pointermove", { ...hand, buttons: 1 }));
+      let html = view.dom.querySelector(".cm-content").innerHTML;
+      view.dispatch({ selection: { anchor: 0, head: view.state.doc.length } });
+      html += view.dom.querySelector(".cm-content").innerHTML;
       view.destroy();
       for (const m of html.matchAll(/cm-md-[a-z0-9-]+/g)) shown.add(m[0]);
     }
