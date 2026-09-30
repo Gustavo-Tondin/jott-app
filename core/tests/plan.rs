@@ -515,6 +515,26 @@ fn switching_the_option_off_gives_the_manual_day_back() {
 }
 
 #[test]
+fn an_overdue_task_in_a_space_of_the_user_joins_today_too() {
+    // Every tasks space is walked, a space inside a group included — not only
+    // the fixed Tasks space.
+    let (dir, notebook) = init();
+    notebook.create_group("Work", None, None).unwrap();
+    let space = notebook.create_space_in("Client", "tasks", Some("Work"), None).unwrap();
+    let due = chrono::Local::now().date_naive() - chrono::Duration::days(5);
+    std::fs::write(
+        dir.path().join(&space).join("task-list.md"),
+        format!("- [ ] Send the invoice\n  @{due}\n"),
+    )
+    .unwrap();
+
+    let day = notebook.day_tasks(None).unwrap();
+    assert_eq!(day.len(), 1);
+    assert_eq!(day[0].task.text, "Send the invoice");
+    assert_eq!(day[0].path, format!("{space}/task-list.md"));
+}
+
+#[test]
 fn a_task_dated_ahead_joins_its_own_day_and_no_other() {
     // The calendar shows a dated task on the day it is due (user call,
     // 2026-09-04), without anyone planning it — and only there: what is

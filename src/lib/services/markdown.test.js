@@ -108,10 +108,10 @@ describe("live preview", () => {
     expect(hidden(doc, { anchor: from, head: from + 5 })).toEqual(["# ", "*", "*"]);
   });
 
-  test("while the mouse draws a selection nothing is revealed", () => {
-    // Syntax appearing under a drag moves the text being selected: the
-    // editor stays formatted from the press to the release, and the release
-    // reveals what the selection touches.
+  test("while the mouse draws a selection, what shows stays as it was", () => {
+    // Syntax appearing OR folding under a drag moves the text being selected:
+    // the screen keeps what it showed when the selection opened, and the
+    // release reveals what the selection touches.
     const doc = "# Um\n# Dois\n";
     const parent = document.createElement("div");
     document.body.append(parent);
@@ -119,14 +119,50 @@ describe("live preview", () => {
       parent,
       state: EditorState.create({ doc, extensions: [markdown({ base: markdownLanguage }), markdownPreview] }),
     });
-    const marks = () => view.dom.querySelectorAll(".cm-line").length && view.contentDOM.textContent;
+    const marks = () => view.contentDOM.textContent;
+    expect(marks()).toBe("# UmDois");
     view.contentDOM.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
     view.dispatch({ selection: { anchor: 0, head: doc.length } });
-    expect(marks()).toBe("UmDois");
+    expect(marks()).toBe("# UmDois");
     window.dispatchEvent(new MouseEvent("mouseup"));
     expect(marks()).toBe("# Um# Dois");
     view.destroy();
     parent.remove();
+  });
+
+  test("a drag inside a link being edited keeps its address on screen", () => {
+    // Selecting part of the address with the mouse folded the link away
+    // mid-drag: the text under the pointer vanished and came back on release.
+    const doc = "início\nveja [site](https://ex.com) e mais\n";
+    const at = doc.indexOf("ex.com");
+    const parent = document.createElement("div");
+    document.body.append(parent);
+    const view = new EditorView({
+      parent,
+      state: EditorState.create({ doc, extensions: [markdown({ base: markdownLanguage }), markdownPreview] }),
+    });
+    const text = () => view.contentDOM.textContent;
+    view.contentDOM.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0, detail: 1 }));
+    // The press lands in the address, then the drag opens the selection.
+    view.dispatch({ selection: { anchor: at } });
+    view.dispatch({ selection: { anchor: at, head: at + 2 } });
+    expect(text()).toBe(doc.replace("\n", "").trim());
+    window.dispatchEvent(new MouseEvent("mouseup"));
+    expect(text()).toBe(doc.replace("\n", "").trim());
+    view.destroy();
+    parent.remove();
+  });
+
+  test("a caret anywhere on a link's line shows the link", () => {
+    // Typing a space after `)` used to fold the link away mid-sentence, as if
+    // the caret had left it. A selection elsewhere on the line still does not.
+    const doc = "veja [site](https://ex.com) e mais\nfim\n";
+    const after = doc.indexOf(" e mais") + 1;
+    expect(hidden(doc, after)).toEqual([]);
+    expect(hidden(doc, 0)).toEqual([]);
+    expect(hidden(doc, lineStart(doc, 2))).toEqual(["[", "]", "(", "https://ex.com", ")"]);
+    const word = doc.indexOf("mais");
+    expect(hidden(doc, { anchor: word, head: word + 4 })).toEqual(["[", "]", "(", "https://ex.com", ")"]);
   });
 
   test("a press alone moves nothing — the text stays where the finger landed", () => {
@@ -154,8 +190,11 @@ describe("live preview", () => {
   test("a drag that stops against hidden syntax takes it on release", () => {
     // Drawn from the heading's first letter, the selection starts after the
     // hidden `# `; revealed on release, the mark belongs to what was selected.
-    const doc = "# Título\n- [ ] tarefa **forte** e *leve*\nfim\n";
-    const two = lineStart(doc, 2);
+    // jsdom's press puts the caret at 0, so the first line holds no mark and
+    // the drag starts with every mark hidden.
+    const doc = "início\n# Título\n- [ ] tarefa **forte** e *leve*\nfim\n";
+    const one = lineStart(doc, 2);
+    const two = lineStart(doc, 3);
     const drag = (anchor, head, detail = 1) => {
       const parent = document.createElement("div");
       document.body.append(parent);
@@ -172,13 +211,13 @@ describe("live preview", () => {
       return doc.slice(Math.min(a, h), Math.max(a, h)) + (a > h ? " ←" : "");
     };
     const at = (text) => doc.indexOf(text);
-    expect(drag(2, 5)).toBe("# Tít");
+    expect(drag(one + 2, one + 5)).toBe("# Tít");
     expect(drag(two + 6, two + 12)).toBe("- [ ] tarefa");
     expect(drag(at("forte"), at("forte") + 5)).toBe("**forte**");
     expect(drag(at("leve") + 4, at("forte"))).toBe("**forte** e *leve* ←");
     // Away from any mark, and on a double click, the selection is left alone.
-    expect(drag(4, 7)).toBe("tul");
-    expect(drag(2, 8, 2)).toBe("Título");
+    expect(drag(one + 4, one + 7)).toBe("tul");
+    expect(drag(one + 2, one + 8, 2)).toBe("Título");
   });
 
   test("plain text has nothing to hide", () => {

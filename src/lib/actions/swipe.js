@@ -8,13 +8,16 @@ import { clamp } from "../services/num.js";
 
 /// Where a release starts to count, as a share of the card's width. An action
 /// that keeps the card (`*Half`) arms halfway and the card springs back; one
-/// that takes it away arms sooner, reachable from a press mid-card, and from
-/// there the card is drawn all the way out and leaves with it.
+/// that takes it away (a delete, out of the day) asks for a longer stroke,
+/// and from there the card is drawn all the way out and leaves with it.
 const HALF = 0.5;
-const END = 0.35;
+const END = 0.6;
 /// The first movement decides which gesture this is. Ahead of the axis lock the
 /// card does not move at all, so a vertical drag never nudges it sideways.
 const LOCK = 8;
+/// How much flatter than the vertical a stroke must be to be a swipe, both to
+/// lock and to arm: a thumb scrolling in an arc is not a swipe.
+const FLAT = 2;
 /// How far a direction with nothing behind it gives before it stops.
 const BAND = 40;
 /// A card sent away that is still here this long after (the action kept it, or
@@ -93,11 +96,15 @@ export function swipe(node, params) {
 
   /// The card under the finger. A direction with nothing behind it gives, but
   /// only a little — it rubber-bands instead of opening onto no action.
-  function carry(dx) {
+  function carry(dx, dy) {
     const ok = allowed(dx);
     const x = ok ? clamp(dx, -drag.width, drag.width) : clamp(dx / 6, -BAND, BAND);
     drag.dx = x;
-    const armed = ok && drag.width > 0 && Math.abs(x) >= (half(x) ? HALF : END) * drag.width;
+    const armed =
+      ok &&
+      drag.width > 0 &&
+      Math.abs(x) >= (half(x) ? HALF : END) * drag.width &&
+      Math.abs(dx) >= FLAT * Math.abs(dy);
     if (armed !== drag.armed) {
       drag.armed = armed;
       node.classList.toggle("swipe--armed", armed);
@@ -137,8 +144,8 @@ export function swipe(node, params) {
         return;
       }
       if (Math.abs(dx) < LOCK && Math.abs(dy) < LOCK) return;
-      // Whichever way it went first is the gesture; the other one is not ours.
-      drag.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+      // Flat enough, the stroke is a swipe; anything steeper is the list's.
+      drag.axis = Math.abs(dx) > FLAT * Math.abs(dy) ? "x" : "y";
       if (drag.axis !== "x") {
         drag = null;
         return;
@@ -150,7 +157,7 @@ export function swipe(node, params) {
         // No pointer capture (jsdom): release still resolves the gesture.
       }
     }
-    carry(dx);
+    carry(dx, dy);
   }
 
   function onPointerUp(e) {
@@ -217,7 +224,7 @@ export function swipe(node, params) {
         return;
       }
       if (Math.abs(dx) < LOCK && Math.abs(dy) < LOCK) return;
-      drag.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+      drag.axis = Math.abs(dx) > FLAT * Math.abs(dy) ? "x" : "y";
       if (drag.axis !== "x") {
         drag = null;
         return;
@@ -226,7 +233,7 @@ export function swipe(node, params) {
     }
     // Ours now: the list must not scroll under it.
     e.preventDefault();
-    carry(dx);
+    carry(dx, dy);
   }
 
   function onTouchEnd() {

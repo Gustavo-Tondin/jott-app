@@ -48,6 +48,8 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 - The chosen day of a calendar stays blue under the pointer.
 - In Settings, the hint of Headings says what it does: titles take the app's colour.
 - The name of a note inside a folder card uses the card's whole width.
+- Deleting a task or taking it out of the day by swipe takes a longer, flatter stroke, so scrolling past a card no longer sets it off.
+- A link in a note stays written out while the cursor is on its line, and selecting part of it with the mouse no longer hides the address mid-drag.
 
 ## v0.59.1
 

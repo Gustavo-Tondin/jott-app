@@ -113,22 +113,25 @@ class BulletWidget extends WidgetType {
 /// The three marks a bullet list can be written with.
 const BULLETS = new Set(["-", "*", "+"]);
 
-/// Is the mouse drawing a selection? `"pressed"` from the press, `"drawing"`
-/// once the selection opens, until the release: nothing is revealed while
-/// drawing — syntax appearing mid-drag moves the very text being selected. A
-/// press alone changes nothing on screen (a phone places the caret after it).
+/// Is the mouse drawing a selection? `"pressed"` from the press, then — once
+/// the selection opens — `{shown}`, the selection the screen was answering to,
+/// until the release: syntax neither appears nor folds mid-drag, because
+/// either moves the very text being selected. A press alone changes nothing
+/// on screen (a phone places the caret after it).
 const setDrawing = StateEffect.define();
 const drawing = StateField.define({
   create: () => false,
   update: (value, tr) =>
     tr.effects.reduce((held, effect) => (effect.is(setDrawing) ? effect.value : held), value),
 });
-const isDrawing = (state) => state.field(drawing, false) === "drawing";
+const isDrawing = (state) => !!state.field(drawing, false)?.shown;
+/// The selection the syntax answers to: the live one, or the one a drag froze.
+const shownSelection = (state) => state.field(drawing, false)?.shown ?? state.selection;
 
 /// The transaction that opens a selection under a press starts the drawing.
 const drawingStarts = EditorState.transactionExtender.of((tr) =>
   tr.startState.field(drawing, false) === "pressed" && tr.selection && !tr.selection.main.empty
-    ? { effects: setDrawing.of("drawing") }
+    ? { effects: setDrawing.of({ shown: tr.startState.selection }) }
     : null,
 );
 
@@ -188,11 +191,11 @@ const drawingTracker = [
 
 /// Does the selection ask to see the syntax of the span `from`…`to`? Any
 /// range TOUCHING it, a caret or a finished selection, covering it or not: a
-/// selection shows the text it will copy. Never while the mouse is still
-/// drawing. `services/embeds.js` reuses it so the answers never differ.
+/// selection shows the text it will copy. While the mouse draws, the answer
+/// is the one it gave at the press. `services/embeds.js` reuses it so the
+/// answers never differ.
 export function revealedBy(state) {
-  if (isDrawing(state)) return () => false;
-  const ranges = state.selection.ranges;
+  const ranges = shownSelection(state).ranges;
   return (from, to) => ranges.some((range) => range.from <= to && range.to >= from);
 }
 
@@ -231,8 +234,22 @@ function caretLines(state) {
 export function decorationsFor(state, ranges) {
   const builder = new RangeSetBuilder();
   const reveals = revealedBy(state);
-  /// Is this mark being worked on — and so drawn as the text it is?
-  const raw = (node) => reveals(...scopeOf(state, node));
+  const carets = new Set(
+    shownSelection(state)
+      .ranges.filter((range) => range.empty)
+      .map((range) => state.doc.lineAt(range.head).number),
+  );
+  const onCaretLine = (node) =>
+    carets.has(state.doc.lineAt(node.from).number) || carets.has(state.doc.lineAt(node.to).number);
+  /// Is this mark being worked on — and so drawn as the text it is? A link
+  /// also answers to a CARET anywhere on its line: it is the longest syntax a
+  /// line holds, and folding it the moment the caret stepped past `)` reflowed
+  /// the sentence being typed. A selection still asks the span alone.
+  const raw = (node) => {
+    if (reveals(...scopeOf(state, node))) return true;
+    const parent = node.node.parent;
+    return parent?.name === "Link" && onCaretLine(parent);
+  };
 
   for (const { from, to } of ranges) {
     syntaxTree(state).iterate({

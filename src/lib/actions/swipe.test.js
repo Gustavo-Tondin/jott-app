@@ -67,17 +67,42 @@ describe("swipe", () => {
     expect(fired).toEqual([]);
   });
 
-  test("a delete arms from a press mid-card, well before the finger reaches the edge", () => {
+  test("a delete takes a deliberate stroke, not a third of the card", () => {
     const el = card();
     const fired = [];
     swipe(el, { onLeft: () => fired.push("left") });
 
-    drag(el, 150, 40, { hold: true }); // 37%, from the middle
+    drag(el, 150, 40); // 37%, from the middle: not enough
+    expect(fired).toEqual([]);
+
+    drag(el, 250, 60, { id: 2, hold: true }); // 63%
     expect(el.classList.contains("swipe--armed")).toBe(true);
     // Armed, the card is drawn all the way out whatever the finger's travel.
     expect(travel(el)).toBe(-WIDTH);
-    fire(el, "pointerup", { pointerId: 1, clientX: 40, clientY: 10 });
+    fire(el, "pointerup", { pointerId: 2, clientX: 60, clientY: 10 });
     expect(fired).toEqual(["left"]);
+  });
+
+  test("a stroke that is not flat is not a swipe", () => {
+    const el = card();
+    const fired = [];
+    swipe(el, { onLeft: () => fired.push("left") });
+
+    // Steeper than 1:2 at the lock: the list's scroll, the card never moves.
+    fire(el, "pointerdown", { button: 0, pointerId: 1, clientX: 280, clientY: 10 });
+    fire(el, "pointermove", { pointerId: 1, clientX: 268, clientY: 17 });
+    fire(el, "pointermove", { pointerId: 1, clientX: 40, clientY: 17 });
+    fire(el, "pointerup", { pointerId: 1, clientX: 40, clientY: 17 });
+    expect(fired).toEqual([]);
+    expect(el.hasAttribute("data-swipe")).toBe(false);
+
+    // Flat at the lock, then carried off in an arc: far enough, never armed.
+    fire(el, "pointerdown", { button: 0, pointerId: 2, clientX: 280, clientY: 10 });
+    fire(el, "pointermove", { pointerId: 2, clientX: 268, clientY: 11 });
+    fire(el, "pointermove", { pointerId: 2, clientX: 40, clientY: 150 });
+    expect(el.classList.contains("swipe--armed")).toBe(false);
+    fire(el, "pointerup", { pointerId: 2, clientX: 40, clientY: 150 });
+    expect(fired).toEqual([]);
   });
 
   test("a half action counts halfway, and the card springs back", () => {
@@ -104,9 +129,9 @@ describe("swipe", () => {
     const fired = [];
     swipe(el, { onRight: () => fired.push("right"), rightKeeps: true });
 
-    drag(el, 20, 150, { hold: true }); // 43%: past the end point
+    drag(el, 20, 220, { hold: true }); // 67%: past the end point
     expect(travel(el)).toBe(WIDTH);
-    fire(el, "pointerup", { pointerId: 1, clientX: 150, clientY: 10 });
+    fire(el, "pointerup", { pointerId: 1, clientX: 220, clientY: 10 });
     expect(fired).toEqual(["right"]);
     expect(el.style.getPropertyValue("--swipe-x")).toBe("");
     expect(el.hasAttribute("data-swipe")).toBe(false);
