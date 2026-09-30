@@ -1,2 +1,6 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Fingerprinted byte for byte (core/src/themes.rs): a CRLF checkout changes the hash.
+src/styles/themes/*.css text eol=lf
+core/tests/fixtures/*.css text eol=lf
