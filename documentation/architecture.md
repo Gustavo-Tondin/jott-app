@@ -163,8 +163,8 @@ not while typing continuously; on Android the lines show up in `adb logcat`.
 ## Tests
 
 ```bash
-cargo test    # ~560 tests: the rules, plus the bridge
-npm test      # ~1040 tests: services, screens, and architecture
+cargo test    # the rules, plus the bridge
+npm test      # services, screens, and architecture
 ```
 
 Three kinds, and they are worth telling apart:

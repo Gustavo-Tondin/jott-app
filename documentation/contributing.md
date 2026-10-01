@@ -69,30 +69,28 @@ code got that way — dates, bug reports, what it used to do — does not
 belong in the source; keep it in the commit message. A file header is five
 lines at most.
 
-**5. Code and comments in English**, including error messages inside the
+**6. Code and comments in English**, including error messages inside the
 code. Commit messages follow [Conventional
-Commits](https://www.conventionalcommits.org) — the existing history is in
-Portuguese; English is equally fine in a PR.
+Commits](https://www.conventionalcommits.org), in English.
 
-**6. Comments explain *why*.** The codebase is full of comments recording a
-decision, a measurement, or a trap that was walked into once. When you move
-code, move the comment with it, byte for byte — rewriting the record of a
-decision loses it. A comment describing what the line next to it obviously
-does is the only kind that isn't wanted.
+**7. A comment travels with its code.** When you move code, move the
+comment with it, byte for byte; trimming is a separate commit. A comment
+describing what the line next to it obviously does is the only kind that
+isn't wanted.
 
-**7. No `<style>` blocks in components.** All CSS lives in `src/styles/`,
+**8. No `<style>` blocks in components.** All CSS lives in `src/styles/`,
 one file per BEM block, `@layer` ordering the cascade, every length in `rem`
 (`px` only for a real device measurement). A component that needs an existing
 shape *wears* the shared class (`class="theme-chip suggestions-pill"`) rather
 than copying its declarations — a copy is a piece the next pass over the
 original will not reach.
 
-**8. Don't bump the version.** It lives in exactly one file and the release
+**9. Don't bump the version.** It lives in exactly one file and the release
 script owns it. Something a user will notice does belong in `CHANGELOG.md`,
 under the section for the next version — the release page is built from it,
 so write the bullet for someone who has never read this repository.
 
-**9. The file format is a contract.** Changing what the app writes into
+**10. The file format is a contract.** Changing what the app writes into
 somebody's notebook means updating [`file-format.md`](file-format.md) in the
 same PR, and thinking about a notebook written by an older version. Unknown
 keys survive; that promise is not negotiable.
